@@ -1,0 +1,28 @@
+{
+  "dependencies": {
+    "ci": "^2.3.0"
+  },
+  "name": "bingo-app",
+  "version": "1.0.0",
+  "description": "A mobile‑first, installation‑free **Web Bingo** game for up to **100 concurrent players**, managed in real‑time by 1–2 administrators.   Built with **Next.js + Fastify (Lambda)** and deployed via **AWS Amplify**.",
+  "main": "index.js",
+  "devDependencies": {
+    "concurrently": "^9.2.0"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "concurrently \"npm run dev -w frontend\" \"npm run dev -w backend\""
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yutaro-shirai/bingo-app.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/yutaro-shirai/bingo-app/issues"
+  },
+  "homepage": "https://github.com/yutaro-shirai/bingo-app#readme"
+}
