@@ -1,110 +1,9 @@
-describe('update', () => {
-  it('should update a game and return the updated entity', async () => {
-    const updatedGame: any = {
-      ...createMockGame(),
-      status: GameStatus.STARTED,
-    };
-    mockDynamoDBService.documentClient.send.mockResolvedValueOnce({
-      Attributes: updatedGame,
-    });
-    const result = await repository.update('test-id', {
-      status: GameStatus.STARTED,
-    });
-    expect(result).toEqual(updatedGame);
-    expect(mockDynamoDBService.documentClient.send).toHaveBeenCalledTimes(1);
-  });
-
-  it('should throw NotFoundException if no Attributes returned', async () => {
-    mockDynamoDBService.documentClient.send.mockResolvedValueOnce({});
-    await expect(
-      repository.update('test-id', { status: GameStatus.STARTED }),
-    ).rejects.toThrow();
-  });
-
-  it('should throw error if update fails', async () => {
-    mockDynamoDBService.documentClient.send.mockRejectedValueOnce(
-      new Error('DynamoDB error'),
-    );
-    await expect(
-      repository.update('test-id', { status: GameStatus.STARTED }),
-    ).rejects.toThrow();
-  });
-});
-
-describe('delete', () => {
-  it('should delete a game without error', async () => {
-    mockDynamoDBService.documentClient.send.mockResolvedValueOnce({});
-    await expect(repository.delete('test-id')).resolves.toBeUndefined();
-    expect(mockDynamoDBService.documentClient.send).toHaveBeenCalledTimes(1);
-  });
-
-  it('should throw error if delete fails', async () => {
-    mockDynamoDBService.documentClient.send.mockRejectedValueOnce(
-      new Error('DynamoDB error'),
-    );
-    await expect(repository.delete('test-id')).rejects.toThrow();
-  });
-});
-
-describe('findByCode', () => {
-  it('should return a game when found by code', async () => {
-    const mockGame = createMockGame();
-    mockDynamoDBService.documentClient.send.mockResolvedValueOnce({
-      Items: [mockGame],
-    });
-    const result = await repository.findByCode('TEST');
-    expect(result).toEqual(mockGame);
-  });
-
-  it('should return null when not found by code', async () => {
-    mockDynamoDBService.documentClient.send.mockResolvedValueOnce({
-      Items: [],
-    });
-    const result = await repository.findByCode('NOTFOUND');
-    expect(result).toBeNull();
-  });
-
-  it('should return null on error', async () => {
-    mockDynamoDBService.documentClient.send.mockRejectedValueOnce(
-      new Error('DynamoDB error'),
-    );
-    const result = await repository.findByCode('ERR');
-    expect(result).toBeNull();
-  });
-});
-
-describe('findByStatus', () => {
-  it('should return games by status', async () => {
-    const mockGame = createMockGame();
-    mockDynamoDBService.documentClient.send.mockResolvedValueOnce({
-      Items: [mockGame],
-    });
-    const result = await repository.findByStatus(GameStatus.CREATED);
-    expect(result).toEqual([mockGame]);
-  });
-
-  it('should return empty array if no games found', async () => {
-    mockDynamoDBService.documentClient.send.mockResolvedValueOnce({
-      Items: [],
-    });
-    const result = await repository.findByStatus(GameStatus.CREATED);
-    expect(result).toEqual([]);
-  });
-
-  it('should return empty array on error', async () => {
-    mockDynamoDBService.documentClient.send.mockRejectedValueOnce(
-      new Error('DynamoDB error'),
-    );
-    const result = await repository.findByStatus(GameStatus.CREATED);
-    expect(result).toEqual([]);
-  });
-});
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { GameRepository } from '../game.repository';
 import { DynamoDBService } from '../../../common/dynamodb/dynamodb.service';
 import { GameEntity } from '../../entities/game.entity';
-import { DrawMode, GameStatus } from '../../../../../../shared/types/game';
+import { DrawMode, GameStatus } from '../../../shared/types';
 
 // Mock DynamoDB service
 const mockDynamoDBService = {
@@ -213,6 +112,108 @@ describe('GameRepository', () => {
       // Act & Assert
       await expect(repository.create(mockGame)).rejects.toThrow();
       expect(mockDynamoDBService.documentClient.send).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('update', () => {
+    it('should update a game and return the updated entity', async () => {
+      const updatedGame: any = {
+        ...createMockGame(),
+        status: GameStatus.ACTIVE,
+      };
+      mockDynamoDBService.documentClient.send.mockResolvedValueOnce({
+        Attributes: updatedGame,
+      });
+      const result = await repository.update('test-id', {
+        status: GameStatus.ACTIVE,
+      });
+      expect(result).toEqual(updatedGame);
+      expect(mockDynamoDBService.documentClient.send).toHaveBeenCalledTimes(1);
+    });
+
+    it('should throw NotFoundException if no Attributes returned', async () => {
+      mockDynamoDBService.documentClient.send.mockResolvedValueOnce({});
+      await expect(
+        repository.update('test-id', { status: GameStatus.ACTIVE }),
+      ).rejects.toThrow();
+    });
+
+    it('should throw error if update fails', async () => {
+      mockDynamoDBService.documentClient.send.mockRejectedValueOnce(
+        new Error('DynamoDB error'),
+      );
+      await expect(
+        repository.update('test-id', { status: GameStatus.ACTIVE }),
+      ).rejects.toThrow();
+    });
+  });
+
+  describe('delete', () => {
+    it('should delete a game without error', async () => {
+      mockDynamoDBService.documentClient.send.mockResolvedValueOnce({});
+      await expect(repository.delete('test-id')).resolves.toBeUndefined();
+      expect(mockDynamoDBService.documentClient.send).toHaveBeenCalledTimes(1);
+    });
+
+    it('should throw error if delete fails', async () => {
+      mockDynamoDBService.documentClient.send.mockRejectedValueOnce(
+        new Error('DynamoDB error'),
+      );
+      await expect(repository.delete('test-id')).rejects.toThrow();
+    });
+  });
+
+  describe('findByCode', () => {
+    it('should return a game when found by code', async () => {
+      const mockGame = createMockGame();
+      mockDynamoDBService.documentClient.send.mockResolvedValueOnce({
+        Items: [mockGame],
+      });
+      const result = await repository.findByCode('TEST');
+      expect(result).toEqual(mockGame);
+    });
+
+    it('should return null when not found by code', async () => {
+      mockDynamoDBService.documentClient.send.mockResolvedValueOnce({
+        Items: [],
+      });
+      const result = await repository.findByCode('NOTFOUND');
+      expect(result).toBeNull();
+    });
+
+    it('should return null on error', async () => {
+      mockDynamoDBService.documentClient.send.mockRejectedValueOnce(
+        new Error('DynamoDB error'),
+      );
+      const result = await repository.findByCode('ERR');
+      expect(result).toBeNull();
+    });
+  });
+
+  describe('findByStatus', () => {
+    it('should return games by status', async () => {
+      const mockGame = createMockGame();
+      mockDynamoDBService.documentClient.send.mockResolvedValueOnce({
+        Items: [mockGame],
+      });
+      const result = await repository.findByStatus(GameStatus.CREATED);
+      expect(result).toEqual([mockGame]);
+    });
+
+    it('should return empty array if no games found', async () => {
+      mockDynamoDBService.documentClient.send.mockResolvedValueOnce({
+        Items: [],
+      });
+      const result = await repository.findByStatus(GameStatus.CREATED);
+      expect(result).toEqual([]);
+    });
+
+    it('should return empty array on error', async () => {
+      mockDynamoDBService.documentClient.send.mockRejectedValueOnce(
+        new Error('DynamoDB error'),
+      );
+      const result = await repository.findByStatus(GameStatus.CREATED);
+      expect(result).toEqual([]);
     });
   });
 

@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import { StoreProvider } from "@/components/providers/StoreProvider";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -33,9 +34,11 @@ export default function RootLayout({
   return (
     <html lang="en" className={inter.variable}>
       <body className="min-h-screen bg-gray-50 dark:bg-gray-900">
-        <main className="container mx-auto px-4 py-8 max-w-4xl">
-          {children}
-        </main>
+        <StoreProvider>
+          <main className="container mx-auto px-4 py-8 max-w-4xl">
+            {children}
+          </main>
+        </StoreProvider>
       </body>
     </html>
   );

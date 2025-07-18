@@ -18,6 +18,7 @@ import {
 type MessageHandler<T extends WebSocketMessage> = (message: T) => void;
 type ConnectionHandler = () => void;
 type ErrorHandler = (error: Error) => void;
+type GenericHandler = (...args: unknown[]) => void;
 
 // Define the WebSocket service interface
 export interface WebSocketService {
@@ -67,7 +68,7 @@ export class SocketIOService implements WebSocketService {
   private gameId: string | undefined;
   private playerId: string | undefined;
   private reconnectAttempts = 0;
-  private eventHandlers: Map<string, Set<Function>> = new Map();
+  private eventHandlers: Map<string, Set<GenericHandler>> = new Map();
 
   constructor(config: Partial<SocketConfig> = {}) {
     this.config = { ...DEFAULT_CONFIG, ...config };
@@ -122,6 +123,14 @@ export class SocketIOService implements WebSocketService {
           // Request sync after reconnection if we have game and player IDs
           if (this.gameId) {
             this.requestSync();
+          }
+
+          // Trigger offline service sync
+          if (typeof window !== 'undefined') {
+            // Import dynamically to avoid circular dependencies
+            import('../services/offline').then(({ getOfflineService }) => {
+              getOfflineService().syncPendingActions();
+            });
           }
         });
 
@@ -260,7 +269,7 @@ export class SocketIOService implements WebSocketService {
    * @returns A function to unregister the handler
    */
   public onConnect(handler: ConnectionHandler): () => void {
-    return this.registerHandler(MessageType.CONNECT, handler);
+    return this.registerHandler(MessageType.CONNECT, handler as GenericHandler);
   }
 
   /**
@@ -269,7 +278,7 @@ export class SocketIOService implements WebSocketService {
    * @returns A function to unregister the handler
    */
   public onDisconnect(handler: ConnectionHandler): () => void {
-    return this.registerHandler(MessageType.DISCONNECT, handler);
+    return this.registerHandler(MessageType.DISCONNECT, handler as GenericHandler);
   }
 
   /**
@@ -278,7 +287,7 @@ export class SocketIOService implements WebSocketService {
    * @returns A function to unregister the handler
    */
   public onReconnect(handler: ConnectionHandler): () => void {
-    return this.registerHandler(MessageType.RECONNECT, handler);
+    return this.registerHandler(MessageType.RECONNECT, handler as GenericHandler);
   }
 
   /**
@@ -287,7 +296,7 @@ export class SocketIOService implements WebSocketService {
    * @returns A function to unregister the handler
    */
   public onError(handler: ErrorHandler): () => void {
-    return this.registerHandler(MessageType.ERROR, handler);
+    return this.registerHandler(MessageType.ERROR, handler as GenericHandler);
   }
 
   /**
@@ -296,7 +305,7 @@ export class SocketIOService implements WebSocketService {
    * @returns A function to unregister the handler
    */
   public onGameStateUpdate(handler: MessageHandler<GameStateUpdateMessage>): () => void {
-    return this.registerHandler(MessageType.GAME_STATE_UPDATE, handler);
+    return this.registerHandler(MessageType.GAME_STATE_UPDATE, handler as GenericHandler);
   }
 
   /**
@@ -305,7 +314,7 @@ export class SocketIOService implements WebSocketService {
    * @returns A function to unregister the handler
    */
   public onNumberDrawn(handler: MessageHandler<NumberDrawnMessage>): () => void {
-    return this.registerHandler(MessageType.NUMBER_DRAWN, handler);
+    return this.registerHandler(MessageType.NUMBER_DRAWN, handler as GenericHandler);
   }
 
   /**
@@ -314,7 +323,7 @@ export class SocketIOService implements WebSocketService {
    * @returns A function to unregister the handler
    */
   public onPlayerJoined(handler: MessageHandler<PlayerJoinedMessage>): () => void {
-    return this.registerHandler(MessageType.PLAYER_JOINED, handler);
+    return this.registerHandler(MessageType.PLAYER_JOINED, handler as GenericHandler);
   }
 
   /**
@@ -323,7 +332,7 @@ export class SocketIOService implements WebSocketService {
    * @returns A function to unregister the handler
    */
   public onPlayerPunchedNumber(handler: MessageHandler<PlayerPunchedNumberMessage>): () => void {
-    return this.registerHandler(MessageType.PLAYER_PUNCHED_NUMBER, handler);
+    return this.registerHandler(MessageType.PLAYER_PUNCHED_NUMBER, handler as GenericHandler);
   }
 
   /**
@@ -332,7 +341,7 @@ export class SocketIOService implements WebSocketService {
    * @returns A function to unregister the handler
    */
   public onPlayerBingo(handler: MessageHandler<PlayerBingoMessage>): () => void {
-    return this.registerHandler(MessageType.PLAYER_BINGO, handler);
+    return this.registerHandler(MessageType.PLAYER_BINGO, handler as GenericHandler);
   }
 
   /**
@@ -341,7 +350,7 @@ export class SocketIOService implements WebSocketService {
    * @returns A function to unregister the handler
    */
   public onSyncResponse(handler: MessageHandler<SyncResponseMessage>): () => void {
-    return this.registerHandler(MessageType.SYNC_RESPONSE, handler);
+    return this.registerHandler(MessageType.SYNC_RESPONSE, handler as GenericHandler);
   }
 
   /**
@@ -415,7 +424,7 @@ export class SocketIOService implements WebSocketService {
    * @returns A function to unregister the handler
    * @private
    */
-  private registerHandler(event: string, handler: Function): () => void {
+  private registerHandler(event: string, handler: GenericHandler): () => void {
     if (!this.eventHandlers.has(event)) {
       this.eventHandlers.set(event, new Set());
     }
@@ -437,7 +446,7 @@ export class SocketIOService implements WebSocketService {
    * @param data The event data
    * @private
    */
-  private notifyHandlers(event: string, data?: any): void {
+  private notifyHandlers(event: string, data?: unknown): void {
     const handlers = this.eventHandlers.get(event);
     if (handlers) {
       handlers.forEach(handler => {

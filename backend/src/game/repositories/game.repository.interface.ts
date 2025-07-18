@@ -1,5 +1,5 @@
 import { GameEntity } from '../entities/game.entity';
-import { GameStatus } from '../../../shared/types';
+import { GameStatus } from 'shared';
 
 export interface IGameRepository {
   /**

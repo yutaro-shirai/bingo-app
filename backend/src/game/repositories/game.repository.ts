@@ -10,7 +10,7 @@ import {
 import { DynamoDBService } from '../../common/dynamodb/dynamodb.service';
 import { GameEntity } from '../entities/game.entity';
 import { IGameRepository } from './game.repository.interface';
-import { GameStatus } from '../../../shared/types';
+import { GameStatus } from 'shared';
 
 @Injectable()
 export class GameRepository implements IGameRepository {

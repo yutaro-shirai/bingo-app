@@ -1,4 +1,4 @@
-import { DrawMode, GameStatus } from '../../../shared/types';
+import { DrawMode, GameStatus } from 'shared';
 import {
   IsArray,
   IsDate,

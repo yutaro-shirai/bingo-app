@@ -1,0 +1,467 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Bingo Web App Infrastructure'
+
+Parameters:
+  Environment:
+    Type: String
+    Default: dev
+    AllowedValues:
+      - dev
+      - staging
+      - prod
+    Description: Environment name
+
+Resources:
+  # DynamoDB Tables
+  GamesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub 'bingo-games-${Environment}'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+        - AttributeName: code
+          AttributeType: S
+        - AttributeName: status
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: CodeIndex
+          KeySchema:
+            - AttributeName: code
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+        - IndexName: StatusIndex
+          KeySchema:
+            - AttributeName: status
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+
+  PlayersTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub 'bingo-players-${Environment}'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+        - AttributeName: gameId
+          AttributeType: S
+        - AttributeName: connectionId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: GameIdIndex
+          KeySchema:
+            - AttributeName: gameId
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+        - IndexName: ConnectionIdIndex
+          KeySchema:
+            - AttributeName: connectionId
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+
+  # Lambda Function Role
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - 'arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'
+      Policies:
+        - PolicyName: DynamoDBAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'dynamodb:GetItem'
+                  - 'dynamodb:PutItem'
+                  - 'dynamodb:UpdateItem'
+                  - 'dynamodb:DeleteItem'
+                  - 'dynamodb:Query'
+                  - 'dynamodb:Scan'
+                  - 'dynamodb:BatchGetItem'
+                  - 'dynamodb:BatchWriteItem'
+                Resource:
+                  - !GetAtt GamesTable.Arn
+                  - !GetAtt PlayersTable.Arn
+                  - !Sub '${GamesTable.Arn}/index/*'
+                  - !Sub '${PlayersTable.Arn}/index/*'
+
+  # Lambda Function
+  BingoBackendFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub 'bingo-backend-${Environment}'
+      Handler: dist/lambda.handler
+      Runtime: nodejs20.x
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Timeout: 30
+      MemorySize: 1024
+      Environment:
+        Variables:
+          NODE_ENV: !Ref Environment
+          DYNAMODB_GAMES_TABLE: !Ref GamesTable
+          DYNAMODB_PLAYERS_TABLE: !Ref PlayersTable
+          AWS_REGION: !Ref 'AWS::Region'
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+
+  # API Gateway
+  BingoApi:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: !Sub 'bingo-api-${Environment}'
+      ProtocolType: HTTP
+      CorsConfiguration:
+        AllowOrigins:
+          - '*'
+        AllowMethods:
+          - GET
+          - POST
+          - PUT
+          - DELETE
+          - OPTIONS
+        AllowHeaders:
+          - Content-Type
+          - Authorization
+          - X-Amz-Date
+          - X-Api-Key
+          - X-Amz-Security-Token
+
+  BingoApiStage:
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      ApiId: !Ref BingoApi
+      StageName: !Ref Environment
+      AutoDeploy: true
+
+  BingoApiIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref BingoApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${BingoBackendFunction.Arn}/invocations'
+      PayloadFormatVersion: '2.0'
+
+  BingoApiRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref BingoApi
+      RouteKey: 'ANY /{proxy+}'
+      Target: !Join
+        - /
+        - - integrations
+          - !Ref BingoApiIntegration
+
+  BingoLambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref BingoBackendFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${BingoApi}/${BingoApiStage}/*'
+
+  # WebSocket API
+  BingoWebSocketApi:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: !Sub 'bingo-websocket-${Environment}'
+      ProtocolType: WEBSOCKET
+      RouteSelectionExpression: '$request.body.action'
+
+  BingoWebSocketStage:
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      ApiId: !Ref BingoWebSocketApi
+      StageName: !Ref Environment
+      AutoDeploy: true
+
+  BingoWebSocketIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref BingoWebSocketApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${BingoBackendFunction.Arn}/invocations'
+
+  BingoWebSocketConnectRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref BingoWebSocketApi
+      RouteKey: $connect
+      Target: !Join
+        - /
+        - - integrations
+          - !Ref BingoWebSocketIntegration
+
+  BingoWebSocketDisconnectRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref BingoWebSocketApi
+      RouteKey: $disconnect
+      Target: !Join
+        - /
+        - - integrations
+          - !Ref BingoWebSocketIntegration
+
+  BingoWebSocketDefaultRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref BingoWebSocketApi
+      RouteKey: $default
+      Target: !Join
+        - /
+        - - integrations
+          - !Ref BingoWebSocketIntegration
+
+  BingoWebSocketPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref BingoBackendFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${BingoWebSocketApi}/${BingoWebSocketStage}/*'
+
+  # CloudWatch Alarms
+  ApiGateway5xxErrorAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub 'bingo-api-5xx-errors-${Environment}'
+      AlarmDescription: 'Alarm for 5xx errors in API Gateway'
+      MetricName: 5XXError
+      Namespace: AWS/ApiGateway
+      Statistic: Sum
+      Period: 60
+      EvaluationPeriods: 1
+      Threshold: 5
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: ApiId
+          Value: !Ref BingoApi
+        - Name: Stage
+          Value: !Ref Environment
+      TreatMissingData: notBreaching
+
+  LambdaErrorsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub 'bingo-lambda-errors-${Environment}'
+      AlarmDescription: 'Alarm for Lambda function errors'
+      MetricName: Errors
+      Namespace: AWS/Lambda
+      Statistic: Sum
+      Period: 60
+      EvaluationPeriods: 1
+      Threshold: 5
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref BingoBackendFunction
+      TreatMissingData: notBreaching
+
+Outputs:
+  ApiEndpoint:
+    Description: 'API Gateway endpoint URL'
+    Value: !Sub 'https://${BingoApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}'
+
+  WebSocketEndpoint:
+    Description: 'WebSocket API endpoint URL'
+    Value: !Sub 'wss://${BingoWebSocketApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}'
+
+  GamesTableName:
+    Description: 'DynamoDB Games Table Name'
+    Value: !Ref GamesTable
+
+  PlayersTableName:
+    Description: 'DynamoDB Players Table Name'
+    Value: !Ref PlayersTable  # C
+ustom CloudWatch Alarms for Application Metrics
+  ServerErrorRateAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub 'bingo-server-error-rate-${Environment}'
+      AlarmDescription: 'Alarm for high server error rate'
+      MetricName: ServerErrorCount
+      Namespace: BingoApp/Metrics
+      Statistic: Sum
+      Period: 60
+      EvaluationPeriods: 5
+      Threshold: 10
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+      
+  WebSocketErrorRateAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub 'bingo-websocket-error-rate-${Environment}'
+      AlarmDescription: 'Alarm for high WebSocket error rate'
+      MetricName: WebSocketErrorCount
+      Namespace: BingoApp/Metrics
+      Statistic: Sum
+      Period: 60
+      EvaluationPeriods: 5
+      Threshold: 10
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+      
+  HighLatencyAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub 'bingo-high-latency-${Environment}'
+      AlarmDescription: 'Alarm for high API latency'
+      MetricName: RequestDuration
+      Namespace: BingoApp/Metrics
+      Statistic: Average
+      Period: 60
+      EvaluationPeriods: 3
+      Threshold: 1000  # 1000ms = 1s
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+      
+  ConcurrentPlayersAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub 'bingo-concurrent-players-${Environment}'
+      AlarmDescription: 'Alarm for high number of concurrent players'
+      MetricName: ConcurrentPlayers
+      Namespace: BingoApp/Metrics
+      Statistic: Maximum
+      Period: 60
+      EvaluationPeriods: 1
+      Threshold: 90  # Alert when approaching the 100 player limit
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+      
+  # Dashboard for monitoring the application
+  BingoDashboard:
+    Type: AWS::CloudWatch::Dashboard
+    Properties:
+      DashboardName: !Sub 'bingo-dashboard-${Environment}'
+      DashboardBody: !Sub |
+        {
+          "widgets": [
+            {
+              "type": "metric",
+              "x": 0,
+              "y": 0,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "metrics": [
+                  [ "BingoApp/Metrics", "RequestDuration", "Method", "GET", { "stat": "Average" } ],
+                  [ "...", "POST", { "stat": "Average" } ],
+                  [ "...", "PUT", { "stat": "Average" } ],
+                  [ "...", "DELETE", { "stat": "Average" } ]
+                ],
+                "view": "timeSeries",
+                "stacked": false,
+                "region": "${AWS::Region}",
+                "title": "API Latency by Method",
+                "period": 60
+              }
+            },
+            {
+              "type": "metric",
+              "x": 12,
+              "y": 0,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "metrics": [
+                  [ "BingoApp/Metrics", "WebSocketMessageDuration", "MessageType", "game_state_update", { "stat": "Average" } ],
+                  [ "...", "number_drawn", { "stat": "Average" } ],
+                  [ "...", "player_joined", { "stat": "Average" } ],
+                  [ "...", "player_bingo", { "stat": "Average" } ]
+                ],
+                "view": "timeSeries",
+                "stacked": false,
+                "region": "${AWS::Region}",
+                "title": "WebSocket Message Processing Time",
+                "period": 60
+              }
+            },
+            {
+              "type": "metric",
+              "x": 0,
+              "y": 6,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "metrics": [
+                  [ "BingoApp/Metrics", "ConcurrentPlayers" ]
+                ],
+                "view": "timeSeries",
+                "stacked": false,
+                "region": "${AWS::Region}",
+                "title": "Concurrent Players",
+                "period": 60
+              }
+            },
+            {
+              "type": "metric",
+              "x": 12,
+              "y": 6,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "metrics": [
+                  [ "BingoApp/Metrics", "ServerErrorCount", { "stat": "Sum" } ],
+                  [ "BingoApp/Metrics", "ClientErrorCount", { "stat": "Sum" } ],
+                  [ "BingoApp/Metrics", "WebSocketErrorCount", { "stat": "Sum" } ]
+                ],
+                "view": "timeSeries",
+                "stacked": false,
+                "region": "${AWS::Region}",
+                "title": "Error Counts",
+                "period": 60
+              }
+            },
+            {
+              "type": "metric",
+              "x": 0,
+              "y": 12,
+              "width": 24,
+              "height": 6,
+              "properties": {
+                "metrics": [
+                  [ "AWS/Lambda", "Invocations", "FunctionName", "${BingoBackendFunction}", { "stat": "Sum" } ],
+                  [ ".", "Errors", ".", ".", { "stat": "Sum" } ],
+                  [ ".", "Throttles", ".", ".", { "stat": "Sum" } ],
+                  [ ".", "Duration", ".", ".", { "stat": "Average" } ]
+                ],
+                "view": "timeSeries",
+                "stacked": false,
+                "region": "${AWS::Region}",
+                "title": "Lambda Function Metrics",
+                "period": 60
+              }
+            }
+          ]
+        }

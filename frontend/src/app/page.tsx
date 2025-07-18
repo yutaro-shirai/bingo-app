@@ -19,7 +19,7 @@ export default function Home() {
           Join Game
         </Link>
         <Link 
-          href="/admin" 
+          href="/admin/login" 
           className="btn btn-outline text-lg px-8 py-3"
         >
           Admin Login

@@ -1,10 +1,13 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
 import { PlayerEntity } from './entities/player.entity';
 import { IPlayerRepository } from './repositories/player.repository.interface';
 
 @Injectable()
 export class PlayerService {
-  constructor(private readonly playerRepository: IPlayerRepository) {}
+  constructor(
+    @Inject('IPlayerRepository')
+    private readonly playerRepository: IPlayerRepository
+  ) {}
 
   // プレイヤー登録
   async registerPlayer(player: PlayerEntity): Promise<PlayerEntity> {

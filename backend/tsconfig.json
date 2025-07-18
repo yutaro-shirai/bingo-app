@@ -10,6 +10,10 @@
     "sourceMap": true,
     "outDir": "./dist",
     "baseUrl": "./",
+    "paths": {
+      "shared/*": ["../shared/types/*"],
+      "shared": ["../shared/types/index"]
+    },
     "incremental": true,
     "skipLibCheck": true,
     "strictNullChecks": true,

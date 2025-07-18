@@ -36,3 +36,6 @@ export function formatDate(date: Date): string {
 export function delay(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
+
+// Export animation utilities
+export * from './animations';

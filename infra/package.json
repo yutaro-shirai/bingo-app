@@ -4,6 +4,17 @@
   "private": true,
   "description": "Infrastructure code for Bingo Web App",
   "scripts": {
-    "build": "echo \"No build step required for infra yet\""
+    "deploy:dev": "aws cloudformation deploy --template-file cloudformation.yml --stack-name bingo-web-app-dev --parameter-overrides Environment=dev --capabilities CAPABILITY_IAM",
+    "deploy:staging": "aws cloudformation deploy --template-file cloudformation.yml --stack-name bingo-web-app-staging --parameter-overrides Environment=staging --capabilities CAPABILITY_IAM",
+    "deploy:prod": "aws cloudformation deploy --template-file cloudformation.yml --stack-name bingo-web-app-prod --parameter-overrides Environment=prod --capabilities CAPABILITY_IAM",
+    "describe:dev": "aws cloudformation describe-stacks --stack-name bingo-web-app-dev",
+    "describe:staging": "aws cloudformation describe-stacks --stack-name bingo-web-app-staging",
+    "describe:prod": "aws cloudformation describe-stacks --stack-name bingo-web-app-prod",
+    "outputs:dev": "aws cloudformation describe-stacks --stack-name bingo-web-app-dev --query 'Stacks[0].Outputs' --output table",
+    "outputs:staging": "aws cloudformation describe-stacks --stack-name bingo-web-app-staging --query 'Stacks[0].Outputs' --output table",
+    "outputs:prod": "aws cloudformation describe-stacks --stack-name bingo-web-app-prod --query 'Stacks[0].Outputs' --output table"
+  },
+  "devDependencies": {
+    "aws-sdk": "^2.1502.0"
   }
 }

@@ -1,4 +1,4 @@
-import { BingoCard } from '../../../shared/types';
+import { BingoCard } from 'shared';
 import {
   IsArray,
   IsBoolean,

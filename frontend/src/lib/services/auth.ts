@@ -44,13 +44,14 @@ export class AuthService {
       // Validate credentials
       LoginCredentialsSchema.parse(credentials);
       
-      // In a real app, this would be an API call
+      // Call the backend auth API
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(credentials),
+        credentials: 'include', // Include cookies for CORS
       });
       
       if (!response.ok) {
