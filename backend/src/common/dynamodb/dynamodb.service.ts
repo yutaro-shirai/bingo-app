@@ -1,4 +1,9 @@
-import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnModuleInit,
+  OnModuleDestroy,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
@@ -11,12 +16,12 @@ export class DynamoDBService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(DynamoDBService.name);
   private client: DynamoDBClient;
   private _documentClient: DynamoDBDocumentClient;
-  
+
   // Connection pool settings
   private readonly maxConnections: number = 50;
   private readonly connectionTimeout: number = 5000; // 5 seconds
   private readonly idleConnectionTimeout: number = 60000; // 60 seconds
-  
+
   constructor(private readonly configService: ConfigService) {}
 
   /**
@@ -24,12 +29,14 @@ export class DynamoDBService implements OnModuleInit, OnModuleDestroy {
    */
   async onModuleInit() {
     this.logger.log('Initializing DynamoDB service');
-    
+
     try {
       await this.initializeClient();
       this.logger.log('DynamoDB service initialized successfully');
     } catch (error) {
-      this.logger.error(`Failed to initialize DynamoDB service: ${error.message}`);
+      this.logger.error(
+        `Failed to initialize DynamoDB service: ${error.message}`,
+      );
       throw error;
     }
   }
@@ -39,7 +46,7 @@ export class DynamoDBService implements OnModuleInit, OnModuleDestroy {
    */
   async onModuleDestroy() {
     this.logger.log('Destroying DynamoDB service');
-    
+
     try {
       await this.client.destroy();
       this.logger.log('DynamoDB service destroyed successfully');
@@ -54,7 +61,7 @@ export class DynamoDBService implements OnModuleInit, OnModuleDestroy {
   private async initializeClient() {
     const region = this.configService.get<string>('AWS_REGION', 'us-east-1');
     const endpoint = this.configService.get<string>('DYNAMODB_ENDPOINT');
-    
+
     const clientConfig: any = {
       region,
       maxAttempts: 3,
@@ -71,11 +78,11 @@ export class DynamoDBService implements OnModuleInit, OnModuleDestroy {
         },
       },
     };
-    
+
     // Use local endpoint for development if configured
     if (endpoint) {
       clientConfig.endpoint = endpoint;
-      
+
       // For local development, we can use fake credentials
       if (endpoint.includes('localhost') || endpoint.includes('127.0.0.1')) {
         clientConfig.credentials = {
@@ -84,9 +91,9 @@ export class DynamoDBService implements OnModuleInit, OnModuleDestroy {
         };
       }
     }
-    
+
     this.client = new DynamoDBClient(clientConfig);
-    
+
     // Create document client with optimized marshalling
     this._documentClient = DynamoDBDocumentClient.from(this.client, {
       marshallOptions: {
