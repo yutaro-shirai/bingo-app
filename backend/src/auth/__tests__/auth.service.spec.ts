@@ -40,7 +40,9 @@ describe('AuthService', () => {
         password: 'admin123',
       };
 
-      await expect(service.login(loginDto)).rejects.toThrow(UnauthorizedException);
+      await expect(service.login(loginDto)).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
 
     it('should throw UnauthorizedException for invalid password', async () => {
@@ -49,7 +51,9 @@ describe('AuthService', () => {
         password: 'invalid',
       };
 
-      await expect(service.login(loginDto)).rejects.toThrow(UnauthorizedException);
+      await expect(service.login(loginDto)).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
   });
 
@@ -72,7 +76,9 @@ describe('AuthService', () => {
     it('should throw UnauthorizedException for invalid token', async () => {
       const invalidToken = 'invalid.token.here';
 
-      await expect(service.verifyToken(invalidToken)).rejects.toThrow(UnauthorizedException);
+      await expect(service.verifyToken(invalidToken)).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
   });
 
@@ -85,11 +91,15 @@ describe('AuthService', () => {
 
     it('should throw UnauthorizedException for invalid header format', () => {
       const authHeader = 'Invalid header';
-      expect(() => service.extractTokenFromHeader(authHeader)).toThrow(UnauthorizedException);
+      expect(() => service.extractTokenFromHeader(authHeader)).toThrow(
+        UnauthorizedException,
+      );
     });
 
     it('should throw UnauthorizedException for missing header', () => {
-      expect(() => service.extractTokenFromHeader('')).toThrow(UnauthorizedException);
+      expect(() => service.extractTokenFromHeader('')).toThrow(
+        UnauthorizedException,
+      );
     });
   });
 });

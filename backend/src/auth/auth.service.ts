@@ -39,8 +39,8 @@ export class AuthService {
     const { username, password } = loginDto;
 
     // Find user by username
-    const user = this.adminUsers.find(u => u.username === username);
-    
+    const user = this.adminUsers.find((u) => u.username === username);
+
     if (!user) {
       throw new UnauthorizedException('Invalid username or password');
     }
@@ -55,9 +55,9 @@ export class AuthService {
       id: user.id,
       username: user.username,
       isAdmin: user.isAdmin,
-      exp: Date.now() + (24 * 60 * 60 * 1000), // 24 hours
+      exp: Date.now() + 24 * 60 * 60 * 1000, // 24 hours
     };
-    
+
     const token = Buffer.from(JSON.stringify(tokenData)).toString('base64');
 
     return {
@@ -75,15 +75,17 @@ export class AuthService {
    * @param token Base64 encoded token
    * @returns User information
    */
-  async verifyToken(token: string): Promise<{ id: string; username: string; isAdmin: boolean }> {
+  async verifyToken(
+    token: string,
+  ): Promise<{ id: string; username: string; isAdmin: boolean }> {
     try {
       const tokenData = JSON.parse(Buffer.from(token, 'base64').toString());
-      
+
       // Check if token is expired
       if (Date.now() > tokenData.exp) {
         throw new UnauthorizedException('Token expired');
       }
-      
+
       return {
         id: tokenData.id,
         username: tokenData.username,

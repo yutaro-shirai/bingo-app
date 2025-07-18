@@ -1,4 +1,9 @@
-import { Injectable, CanActivate, ExecutionContext, UnauthorizedException } from '@nestjs/common';
+import {
+  Injectable,
+  CanActivate,
+  ExecutionContext,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { AuthService } from './auth.service';
 
 @Injectable()
@@ -16,10 +21,10 @@ export class AuthGuard implements CanActivate {
     try {
       const token = this.authService.extractTokenFromHeader(authHeader);
       const user = await this.authService.verifyToken(token);
-      
+
       // Attach user to request for use in controllers
       request.user = user;
-      
+
       return true;
     } catch (error) {
       throw new UnauthorizedException('Invalid or expired token');
@@ -42,17 +47,19 @@ export class AdminGuard implements CanActivate {
     try {
       const token = this.authService.extractTokenFromHeader(authHeader);
       const user = await this.authService.verifyToken(token);
-      
+
       if (!user.isAdmin) {
         throw new UnauthorizedException('Admin privileges required');
       }
-      
+
       // Attach user to request for use in controllers
       request.user = user;
-      
+
       return true;
     } catch (error) {
-      throw new UnauthorizedException('Invalid token or insufficient privileges');
+      throw new UnauthorizedException(
+        'Invalid token or insufficient privileges',
+      );
     }
   }
 }
