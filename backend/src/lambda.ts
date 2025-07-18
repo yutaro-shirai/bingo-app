@@ -4,7 +4,12 @@ import { ExpressAdapter } from '@nestjs/platform-express';
 import { INestApplication } from '@nestjs/common';
 import * as express from 'express';
 import { Server } from 'http';
-import { Context, APIGatewayProxyEvent, APIGatewayProxyResult, APIGatewayProxyHandler } from 'aws-lambda';
+import {
+  Context,
+  APIGatewayProxyEvent,
+  APIGatewayProxyResult,
+  APIGatewayProxyHandler,
+} from 'aws-lambda';
 import { createServer, proxy } from 'aws-serverless-express';
 import { eventContext } from 'aws-serverless-express/middleware';
 import { WsAdapter } from '@nestjs/platform-ws';
@@ -32,29 +37,25 @@ async function bootstrapServer(): Promise<Server> {
   if (!cachedServer) {
     const expressApp = express();
     expressApp.use(eventContext());
-    
-    app = await NestFactory.create(
-      AppModule,
-      new ExpressAdapter(expressApp),
-      {
-        logger: new LoggerService(),
-      },
-    );
-    
+
+    app = await NestFactory.create(AppModule, new ExpressAdapter(expressApp), {
+      logger: new LoggerService(),
+    });
+
     app.enableCors({
       origin: '*', // Configure according to your needs
       methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
       credentials: true,
     });
-    
+
     // Use WebSocket adapter
     app.useWebSocketAdapter(new WsAdapter(app));
-    
+
     await app.init();
-    
+
     cachedServer = createServer(expressApp, undefined, binaryMimeTypes);
   }
-  
+
   return cachedServer;
 }
 
@@ -74,18 +75,18 @@ export const handler: APIGatewayProxyHandler = async (
       },
     };
   }
-  
+
   // Handle WebSocket connections
   if (event.requestContext && event.requestContext.connectionId) {
     const server = await bootstrapServer();
-    
+
     // Extract connection information
     const connectionId = event.requestContext.connectionId;
     const routeKey = event.requestContext.routeKey;
-    
+
     // Log WebSocket event
     console.log(`WebSocket ${routeKey} - ConnectionId: ${connectionId}`);
-    
+
     // Handle WebSocket events
     if (routeKey === '$connect') {
       // Handle connection
@@ -117,7 +118,7 @@ export const handler: APIGatewayProxyHandler = async (
       }
     }
   }
-  
+
   // Handle HTTP requests
   const server = await bootstrapServer();
   return proxy(server, event, context, 'PROMISE').promise;
