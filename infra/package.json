@@ -1,0 +1,9 @@
+{
+  "name": "infra",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Infrastructure code for Bingo Web App",
+  "scripts": {
+    "build": "echo \"No build step required for infra yet\""
+  }
+}

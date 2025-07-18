@@ -1,17 +1,30 @@
 {
+  "name": "bingo-app",
+  "version": "1.0.0",
+  "description": "A mobile‑first, installation‑free **Web Bingo** game for up to **100 concurrent players**, managed in real‑time by 1–2 administrators.   Built with **Next.js + NestJS (Lambda)** and deployed via **AWS Amplify**.",
+  "private": true,
+  "workspaces": [
+    "frontend",
+    "backend",
+    "infra"
+  ],
   "dependencies": {
     "ci": "^2.3.0"
   },
-  "name": "bingo-app",
-  "version": "1.0.0",
-  "description": "A mobile‑first, installation‑free **Web Bingo** game for up to **100 concurrent players**, managed in real‑time by 1–2 administrators.   Built with **Next.js + Fastify (Lambda)** and deployed via **AWS Amplify**.",
-  "main": "index.js",
   "devDependencies": {
-    "concurrently": "^9.2.0"
+    "concurrently": "^9.2.0",
+    "eslint": "^9.18.0",
+    "prettier": "^3.4.2",
+    "typescript": "^5.7.3",
+    "husky": "^9.0.0"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "concurrently \"npm run dev -w frontend\" \"npm run dev -w backend\""
+    "test": "npm run test --workspaces --if-present",
+    "dev": "concurrently \"npm run dev -w frontend\" \"npm run dev -w backend\"",
+    "build": "npm run build --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "format": "prettier --write \"**/*.{js,ts,tsx,json,md}\"",
+    "prepare": "husky"
   },
   "repository": {
     "type": "git",
