@@ -6,7 +6,8 @@
   "workspaces": [
     "frontend",
     "backend",
-    "infra"
+    "infra",
+    "shared"
   ],
   "dependencies": {
     "ci": "^2.3.0"
