@@ -118,7 +118,8 @@ Key features include:
 The player service implementation includes:
 - Player registration (basic implementation)
 - Card state management
-- Connection state tracking
+- Connection state tracking with WebSocket connection IDs
+- Bingo status management and tracking
 - Bingo card generation (placeholder - needs implementation)
 
 ### WebSocket Gateway
@@ -143,6 +144,8 @@ The gateway is configured with CORS enabled for development. In production, the 
 | `joinGame` | Client → Server | Request to join a specific game room |
 | `playerJoined` | Server → Client | Broadcast when a new player joins a game |
 | `gameJoined` | Server → Client | Confirmation that a player has joined a game |
+| `bingoAchieved` | Client → Server | Player claims to have achieved bingo |
+| `bingoVerified` | Server → Client | Server confirms a player's bingo claim |
 
 ### Current Development Status
 
@@ -159,6 +162,7 @@ The gateway is configured with CORS enabled for development. In production, the 
 - 🔄 WebSocket gateway real-time event broadcasting
 - 🔄 REST API controllers for game management
 - 🔄 Admin authentication and authorization
+- 🔄 Bingo status tracking and validation
 
 **Next Steps:**
 - Player bingo card generation implementation

@@ -25,7 +25,7 @@
     - Implement Zod validation schemas
     - _Requirements: 2.3, 3.7, 4.1, 4.2_
 
-- [-] 2. Core Backend Implementation
+- [ ] 2. Core Backend Implementation
   - [x] 2.1 Implement game data models and DTOs
     - Create Game entity and related interfaces
     - Create Player entity and related interfaces
@@ -53,8 +53,9 @@
 
   - [-] 2.5 Implement player service
     - [x] Implement player registration
-    - [ ] Implement bingo card generation algorithm
+    - [-] Implement bingo card generation algorithm
     - [x] Implement card state management
+    - [x] Implement bingo status tracking
     - _Requirements: 1.2, 1.4, 2.1, 2.2, 2.3, 2.4_
 
   - [x] 2.6 Enhance WebSocket gateway for real-time communication
@@ -70,7 +71,7 @@
     - Implement admin-specific endpoints
     - _Requirements: 1.1, 1.2, 1.3, 3.1, 3.2, 3.3, 3.4_
 
-- [-] 3. Core Frontend Implementation
+- [ ] 3. Core Frontend Implementation
   - [x] 3.1 Implement WebSocket client service
     - Create socket.io client wrapper
     - Implement reconnection logic

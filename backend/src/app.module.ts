@@ -45,8 +45,6 @@ import { WsExceptionFilter } from './common/filters/ws-exception.filter';
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
-    consumer
-      .apply(MetricsMiddleware)
-      .forRoutes('*');
+    consumer.apply(MetricsMiddleware).forRoutes('*');
   }
 }
