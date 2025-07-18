@@ -1,0 +1,20 @@
+{
+  "enabled": true,
+  "name": "Localization File Translator",
+  "description": "Monitors changes to localization files and automatically generates translations for all configured target languages while maintaining proper context and meaning.",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "**/*.json",
+      "**/*.yaml",
+      "**/*.yml",
+      "**/locales/**/*.*",
+      "**/i18n/**/*.*"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "You are a professional translator. I've made changes to localization files in our primary language. Please:\n\n1. Identify the new or modified text content in the changed files\n2. Generate high-quality translations for all configured target languages (French, German, Spanish, Italian, Japanese, Chinese, Korean)\n3. Ensure translations maintain proper context and meaning\n4. Adhere to locale-specific conventions and formatting\n5. Preserve all keys, structure, and formatting of the original files\n6. Return the translations in the same format as the source files\n\nHere are the changes I've made:"
+  }
+}

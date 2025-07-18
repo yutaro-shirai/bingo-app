@@ -1,0 +1,21 @@
+{
+  "enabled": true,
+  "name": "Documentation Update Hook",
+  "description": "Monitors source code changes and prompts for documentation updates in README files or the docs folder",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "frontend/src/**/*.{ts",
+      "tsx}",
+      "backend/src/**/*.ts",
+      "infra/**/*.{ts",
+      "js}",
+      "*.md"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "I noticed changes in the source code. Please review these changes and update the relevant documentation:\n\n1. If the changes affect project setup, commands, or architecture, update the main README.md\n2. If the changes are specific to the frontend, update frontend/README.md\n3. If the changes are specific to the backend, update backend/README.md\n4. Ensure documentation accurately reflects the current state of the code\n5. If documentation updates are needed, please provide the updated content for the appropriate files\n\nChanges detected in: {{changedFiles}}"
+  }
+}

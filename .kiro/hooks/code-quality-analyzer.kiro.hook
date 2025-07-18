@@ -1,0 +1,21 @@
+{
+  "enabled": true,
+  "name": "Code Quality Analyzer",
+  "description": "Analyzes code changes and suggests improvements for better readability, maintainability, and performance",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "frontend/src/**/*.{ts",
+      "tsx",
+      "js",
+      "jsx}",
+      "backend/src/**/*.{ts",
+      "js}"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "You are a code quality expert. Analyze the following code changes and provide specific, actionable suggestions for improvement. Focus on:\n\n1. Code smells and anti-patterns\n2. Opportunities to apply design patterns\n3. Performance optimizations\n4. TypeScript best practices\n5. React/Next.js or NestJS best practices (depending on the file context)\n6. Readability and maintainability improvements\n\nFor each suggestion:\n- Explain the issue clearly\n- Provide a code example showing the improvement\n- Explain the benefit of making the change\n\nKeep your analysis focused on the modified code while considering the overall architecture. Ensure suggestions maintain existing functionality.\n\nModified file: {{filePath}}"
+  }
+}
