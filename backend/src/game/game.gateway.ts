@@ -14,11 +14,11 @@ import { GameService } from './game.service';
 import { PlayerService } from './player.service';
 import { WsJwtGuard } from '../auth/guards/ws-jwt.guard';
 import { WsPlayerGuard } from '../auth/guards/ws-player.guard';
-import { 
-  OptimizedGameDto, 
-  OptimizedNumberDrawnDto, 
+import {
+  OptimizedGameDto,
+  OptimizedNumberDrawnDto,
   OptimizedPlayerJoinedDto,
-  OptimizedPlayerBingoDto 
+  OptimizedPlayerBingoDto,
 } from './dto/optimized-game.dto';
 
 @WebSocketGateway({
@@ -55,10 +55,10 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
         // Admin connection
         this.logger.log(`Admin connected to game ${gameId}`);
         this.joinGameRoom(client, gameId);
-        
+
         // Update admin connection in game
         await this.gameService.updateAdminConnection(gameId, client.id, true);
-        
+
         // Send initial game state
         const game = await this.gameService.getGameById(gameId);
         client.emit('gameState', OptimizedGameDto.fromEntity(game));
@@ -74,24 +74,23 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       }
 
       this.logger.log(`Player ${playerId} connected to game ${gameId}`);
-      
+
       // Store player connection
       this.playerSockets.set(playerId, client.id);
       this.socketPlayers.set(client.id, playerId);
       this.joinGameRoom(client, gameId);
-      
+
       // Update player connection status
       await this.playerService.updateConnectionState(playerId, true);
-      
+
       // Send initial game and player state
       const [game, player] = await Promise.all([
         this.gameService.getGameById(gameId),
         this.playerService.getPlayerById(playerId),
       ]);
-      
+
       client.emit('gameState', OptimizedGameDto.fromEntity(game));
       client.emit('playerState', player);
-      
     } catch (error) {
       this.logger.error(`Error handling connection: ${error.message}`);
       client.disconnect();
@@ -103,10 +102,10 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       const playerId = this.socketPlayers.get(client.id);
       if (playerId) {
         this.logger.log(`Player ${playerId} disconnected`);
-        
+
         // Update player connection status
         await this.playerService.updateConnectionState(playerId, false);
-        
+
         // Clean up maps
         this.playerSockets.delete(playerId);
         this.socketPlayers.delete(client.id);
@@ -115,13 +114,16 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
         const gameId = this.findGameIdForSocket(client.id);
         if (gameId) {
           this.logger.log(`Admin disconnected from game ${gameId}`);
-          await this.gameService.updateAdminConnection(gameId, client.id, false);
+          await this.gameService.updateAdminConnection(
+            gameId,
+            client.id,
+            false,
+          );
         }
       }
-      
+
       // Remove from all game rooms
       this.leaveAllGameRooms(client);
-      
     } catch (error) {
       this.logger.error(`Error handling disconnection: ${error.message}`);
     }
@@ -187,11 +189,14 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       if (isValid) {
         // Get player info to broadcast bingo event
         const player = await this.playerService.getPlayerById(playerId);
-        
+
         // Broadcast bingo event to all players in the game
         this.server
           .to(`game:${player.gameId}`)
-          .emit('playerBingo', OptimizedPlayerBingoDto.create(player.id, player.name));
+          .emit(
+            'playerBingo',
+            OptimizedPlayerBingoDto.create(player.id, player.name),
+          );
       }
 
       return { valid: isValid };
@@ -209,12 +214,12 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {
     try {
       const result = await this.gameService.drawNumber(data.gameId);
-      
+
       // Broadcast number drawn event to all players in the game
       this.server
         .to(`game:${data.gameId}`)
         .emit('numberDrawn', OptimizedNumberDrawnDto.create(result.number));
-      
+
       return { success: true, number: result.number };
     } catch (error) {
       this.logger.error(`Error drawing number: ${error.message}`);
@@ -237,7 +242,10 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
   notifyPlayerJoined(gameId: string, playerId: string, playerName: string) {
     this.server
       .to(`game:${gameId}`)
-      .emit('playerJoined', OptimizedPlayerJoinedDto.create(playerId, playerName));
+      .emit(
+        'playerJoined',
+        OptimizedPlayerJoinedDto.create(playerId, playerName),
+      );
   }
 
   /**
@@ -254,7 +262,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
    */
   private joinGameRoom(client: Socket, gameId: string) {
     client.join(`game:${gameId}`);
-    
+
     // Track game room membership
     if (!this.gameRooms.has(gameId)) {
       this.gameRooms.set(gameId, new Set());
@@ -270,7 +278,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       if (socketIds.has(client.id)) {
         socketIds.delete(client.id);
         client.leave(`game:${gameId}`);
-        
+
         // Clean up empty game rooms
         if (socketIds.size === 0) {
           this.gameRooms.delete(gameId);

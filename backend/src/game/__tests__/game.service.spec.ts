@@ -118,7 +118,11 @@ describe('GameService', () => {
         adminConnections: [],
       };
 
-      const updatedGame = { ...mockGame, status: GameStatus.ACTIVE, startedAt: new Date() };
+      const updatedGame = {
+        ...mockGame,
+        status: GameStatus.ACTIVE,
+        startedAt: new Date(),
+      };
 
       gameRepository.findById.mockResolvedValue(mockGame);
       gameRepository.update.mockResolvedValue(updatedGame);
@@ -137,7 +141,9 @@ describe('GameService', () => {
       const gameId = 'non-existent-id';
       gameRepository.findById.mockResolvedValue(null);
 
-      await expect(service.startGame(gameId)).rejects.toThrow(NotFoundException);
+      await expect(service.startGame(gameId)).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('should throw BadRequestException if game is not in CREATED status', async () => {
@@ -158,7 +164,9 @@ describe('GameService', () => {
 
       gameRepository.findById.mockResolvedValue(mockGame);
 
-      await expect(service.startGame(gameId)).rejects.toThrow(BadRequestException);
+      await expect(service.startGame(gameId)).rejects.toThrow(
+        BadRequestException,
+      );
     });
   });
 
@@ -187,7 +195,10 @@ describe('GameService', () => {
       const result = await service.drawNumber(gameId);
 
       expect(gameRepository.findById).toHaveBeenCalledWith(gameId);
-      expect(gameRepository.addDrawnNumber).toHaveBeenCalledWith(gameId, expect.any(Number));
+      expect(gameRepository.addDrawnNumber).toHaveBeenCalledWith(
+        gameId,
+        expect.any(Number),
+      );
       expect(result.game).toEqual(updatedGame);
       expect(typeof result.number).toBe('number');
       expect(result.number).toBeGreaterThan(0);
@@ -198,7 +209,9 @@ describe('GameService', () => {
       const gameId = 'non-existent-id';
       gameRepository.findById.mockResolvedValue(null);
 
-      await expect(service.drawNumber(gameId)).rejects.toThrow(NotFoundException);
+      await expect(service.drawNumber(gameId)).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('should throw BadRequestException if game is not active', async () => {
@@ -219,7 +232,9 @@ describe('GameService', () => {
 
       gameRepository.findById.mockResolvedValue(mockGame);
 
-      await expect(service.drawNumber(gameId)).rejects.toThrow(BadRequestException);
+      await expect(service.drawNumber(gameId)).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('should throw BadRequestException if all numbers have been drawn', async () => {
@@ -241,7 +256,9 @@ describe('GameService', () => {
 
       gameRepository.findById.mockResolvedValue(mockGame);
 
-      await expect(service.drawNumber(gameId)).rejects.toThrow(BadRequestException);
+      await expect(service.drawNumber(gameId)).rejects.toThrow(
+        BadRequestException,
+      );
     });
   });
 
@@ -249,7 +266,7 @@ describe('GameService', () => {
     it('should validate bingo correctly for a winning pattern', async () => {
       const playerId = 'player-id';
       const gameId = 'game-id';
-      
+
       const mockPlayer: PlayerEntity = {
         id: playerId,
         gameId,
@@ -287,7 +304,10 @@ describe('GameService', () => {
 
       playerRepository.findById.mockResolvedValue(mockPlayer);
       gameRepository.findById.mockResolvedValue(mockGame);
-      playerRepository.update.mockResolvedValue({ ...mockPlayer, hasBingo: true });
+      playerRepository.update.mockResolvedValue({
+        ...mockPlayer,
+        hasBingo: true,
+      });
       gameRepository.incrementBingoCount.mockResolvedValue(mockGame);
 
       const result = await service.validateBingo(playerId, punchedNumbers);
@@ -304,7 +324,7 @@ describe('GameService', () => {
     it('should return false for invalid punched numbers', async () => {
       const playerId = 'player-id';
       const gameId = 'game-id';
-      
+
       const mockPlayer: PlayerEntity = {
         id: playerId,
         gameId,
@@ -386,7 +406,9 @@ describe('GameService', () => {
       const gameId = 'non-existent-id';
       gameRepository.findById.mockResolvedValue(null);
 
-      await expect(service.getGameStatistics(gameId)).rejects.toThrow(NotFoundException);
+      await expect(service.getGameStatistics(gameId)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
@@ -425,7 +447,9 @@ describe('GameService', () => {
       const gameId = 'non-existent-id';
       gameRepository.findById.mockResolvedValue(null);
 
-      await expect(service.pauseGame(gameId)).rejects.toThrow(NotFoundException);
+      await expect(service.pauseGame(gameId)).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('should throw BadRequestException if game is not active', async () => {
@@ -446,7 +470,9 @@ describe('GameService', () => {
 
       gameRepository.findById.mockResolvedValue(mockGame);
 
-      await expect(service.pauseGame(gameId)).rejects.toThrow(BadRequestException);
+      await expect(service.pauseGame(gameId)).rejects.toThrow(
+        BadRequestException,
+      );
     });
   });
 
@@ -485,7 +511,9 @@ describe('GameService', () => {
       const gameId = 'non-existent-id';
       gameRepository.findById.mockResolvedValue(null);
 
-      await expect(service.resumeGame(gameId)).rejects.toThrow(NotFoundException);
+      await expect(service.resumeGame(gameId)).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('should throw BadRequestException if game is not paused', async () => {
@@ -506,7 +534,9 @@ describe('GameService', () => {
 
       gameRepository.findById.mockResolvedValue(mockGame);
 
-      await expect(service.resumeGame(gameId)).rejects.toThrow(BadRequestException);
+      await expect(service.resumeGame(gameId)).rejects.toThrow(
+        BadRequestException,
+      );
     });
   });
 
@@ -527,10 +557,10 @@ describe('GameService', () => {
         adminConnections: [],
       };
 
-      const updatedGame = { 
-        ...mockGame, 
+      const updatedGame = {
+        ...mockGame,
         status: GameStatus.ENDED,
-        endedAt: expect.any(Date)
+        endedAt: expect.any(Date),
       };
 
       gameRepository.findById.mockResolvedValue(mockGame);
@@ -571,7 +601,9 @@ describe('GameService', () => {
 
       gameRepository.findById.mockResolvedValue(mockGame);
 
-      await expect(service.endGame(gameId)).rejects.toThrow(BadRequestException);
+      await expect(service.endGame(gameId)).rejects.toThrow(
+        BadRequestException,
+      );
     });
   });
 
@@ -597,8 +629,8 @@ describe('GameService', () => {
         drawInterval: 30,
       };
 
-      const updatedGame = { 
-        ...mockGame, 
+      const updatedGame = {
+        ...mockGame,
         drawMode: DrawMode.TIMED,
         drawInterval: 30,
       };
@@ -639,8 +671,8 @@ describe('GameService', () => {
         drawInterval: null,
       };
 
-      const updatedGame = { 
-        ...mockGame, 
+      const updatedGame = {
+        ...mockGame,
         drawMode: DrawMode.MANUAL,
         drawInterval: undefined,
       };
@@ -660,7 +692,9 @@ describe('GameService', () => {
       const gameId = 'non-existent-id';
       gameRepository.findById.mockResolvedValue(null);
 
-      await expect(service.updateGame(gameId, { drawMode: DrawMode.MANUAL })).rejects.toThrow(NotFoundException);
+      await expect(
+        service.updateGame(gameId, { drawMode: DrawMode.MANUAL }),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 
@@ -693,7 +727,9 @@ describe('GameService', () => {
       const gameId = 'non-existent-id';
       gameRepository.findById.mockResolvedValue(null);
 
-      await expect(service.getGameById(gameId)).rejects.toThrow(NotFoundException);
+      await expect(service.getGameById(gameId)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
@@ -726,7 +762,9 @@ describe('GameService', () => {
       const gameCode = 'INVALID';
       gameRepository.findByCode.mockResolvedValue(null);
 
-      await expect(service.getGameByCode(gameCode)).rejects.toThrow(NotFoundException);
+      await expect(service.getGameByCode(gameCode)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
@@ -735,7 +773,7 @@ describe('GameService', () => {
       const gameId = 'test-id';
       const now = new Date();
       const lastDrawnAt = new Date(now.getTime() - 60000); // 1 minute ago
-      
+
       const mockGame: GameEntity = {
         id: gameId,
         code: 'ABC123',
@@ -825,7 +863,7 @@ describe('GameService', () => {
       const gameId = 'test-id';
       const now = new Date();
       const lastDrawnAt = new Date(now.getTime() - 10000); // 10 seconds ago
-      
+
       const mockGame: GameEntity = {
         id: gameId,
         code: 'ABC123',
@@ -852,7 +890,7 @@ describe('GameService', () => {
     it('should return null if all numbers have been drawn', async () => {
       const gameId = 'test-id';
       const allNumbers = Array.from({ length: 75 }, (_, i) => i + 1);
-      
+
       const mockGame: GameEntity = {
         id: gameId,
         code: 'ABC123',

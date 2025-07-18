@@ -6,7 +6,7 @@ import { IPlayerRepository } from './repositories/player.repository.interface';
 export class PlayerService {
   constructor(
     @Inject('IPlayerRepository')
-    private readonly playerRepository: IPlayerRepository
+    private readonly playerRepository: IPlayerRepository,
   ) {}
 
   // プレイヤー登録

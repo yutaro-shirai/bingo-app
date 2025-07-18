@@ -6,7 +6,11 @@ import { WsException } from '@nestjs/websockets';
 import { GameStatus, DrawMode } from 'shared';
 import { GameEntity } from '../entities/game.entity';
 import { PlayerEntity } from '../entities/player.entity';
-import { OptimizedGameDto, OptimizedNumberDrawnDto, OptimizedPlayerJoinedDto } from '../dto/optimized-game.dto';
+import {
+  OptimizedGameDto,
+  OptimizedNumberDrawnDto,
+  OptimizedPlayerJoinedDto,
+} from '../dto/optimized-game.dto';
 
 describe('GameGateway', () => {
   let gateway: GameGateway;
@@ -39,8 +43,8 @@ describe('GameGateway', () => {
     }).compile();
 
     gateway = module.get<GameGateway>(GameGateway);
-    gameService = module.get(GameService) as jest.Mocked<GameService>;
-    playerService = module.get(PlayerService) as jest.Mocked<PlayerService>;
+    gameService = module.get(GameService);
+    playerService = module.get(PlayerService);
 
     // Mock server
     gateway.server = {
@@ -57,7 +61,7 @@ describe('GameGateway', () => {
         handshake: {
           headers: {
             'game-id': 'game-123',
-            'authorization': 'Bearer admin-token',
+            authorization: 'Bearer admin-token',
           },
         },
         join: jest.fn(),
@@ -85,9 +89,16 @@ describe('GameGateway', () => {
       await gateway.handleConnection(mockClient);
 
       expect(mockClient.join).toHaveBeenCalledWith('game:game-123');
-      expect(gameService.updateAdminConnection).toHaveBeenCalledWith('game-123', 'socket-id', true);
+      expect(gameService.updateAdminConnection).toHaveBeenCalledWith(
+        'game-123',
+        'socket-id',
+        true,
+      );
       expect(gameService.getGameById).toHaveBeenCalledWith('game-123');
-      expect(mockClient.emit).toHaveBeenCalledWith('gameState', expect.any(OptimizedGameDto));
+      expect(mockClient.emit).toHaveBeenCalledWith(
+        'gameState',
+        expect.any(OptimizedGameDto),
+      );
     });
 
     it('should handle player connection', async () => {
@@ -144,10 +155,16 @@ describe('GameGateway', () => {
       await gateway.handleConnection(mockClient);
 
       expect(mockClient.join).toHaveBeenCalledWith('game:game-123');
-      expect(playerService.updateConnectionState).toHaveBeenCalledWith('player-456', true);
+      expect(playerService.updateConnectionState).toHaveBeenCalledWith(
+        'player-456',
+        true,
+      );
       expect(gameService.getGameById).toHaveBeenCalledWith('game-123');
       expect(playerService.getPlayerById).toHaveBeenCalledWith('player-456');
-      expect(mockClient.emit).toHaveBeenCalledWith('gameState', expect.any(OptimizedGameDto));
+      expect(mockClient.emit).toHaveBeenCalledWith(
+        'gameState',
+        expect.any(OptimizedGameDto),
+      );
       expect(mockClient.emit).toHaveBeenCalledWith('playerState', mockPlayer);
     });
 
@@ -202,7 +219,10 @@ describe('GameGateway', () => {
 
       await gateway.handleDisconnect(mockClient);
 
-      expect(playerService.updateConnectionState).toHaveBeenCalledWith('player-456', false);
+      expect(playerService.updateConnectionState).toHaveBeenCalledWith(
+        'player-456',
+        false,
+      );
       expect((gateway as any).socketPlayers.has('socket-id')).toBe(false);
       expect((gateway as any).playerSockets.has('player-456')).toBe(false);
       expect(mockClient.leave).toHaveBeenCalledWith('game:game-123');
@@ -219,7 +239,11 @@ describe('GameGateway', () => {
 
       await gateway.handleDisconnect(mockClient);
 
-      expect(gameService.updateAdminConnection).toHaveBeenCalledWith('game-123', 'socket-id', false);
+      expect(gameService.updateAdminConnection).toHaveBeenCalledWith(
+        'game-123',
+        'socket-id',
+        false,
+      );
       expect(mockClient.leave).toHaveBeenCalledWith('game:game-123');
     });
   });
@@ -235,7 +259,9 @@ describe('GameGateway', () => {
 
       playerService.punchNumber.mockResolvedValue({} as any);
 
-      const result = await gateway.handlePunchNumber(mockClient, { number: 42 });
+      const result = await gateway.handlePunchNumber(mockClient, {
+        number: 42,
+      });
 
       expect(playerService.punchNumber).toHaveBeenCalledWith('player-456', 42);
       expect(result).toEqual({ success: true });
@@ -248,7 +274,9 @@ describe('GameGateway', () => {
 
       // No player socket mapping
 
-      await expect(gateway.handlePunchNumber(mockClient, { number: 42 })).rejects.toThrow(WsException);
+      await expect(
+        gateway.handlePunchNumber(mockClient, { number: 42 }),
+      ).rejects.toThrow(WsException);
       expect(playerService.punchNumber).not.toHaveBeenCalled();
     });
   });
@@ -264,9 +292,14 @@ describe('GameGateway', () => {
 
       playerService.unpunchNumber.mockResolvedValue({} as any);
 
-      const result = await gateway.handleUnpunchNumber(mockClient, { number: 42 });
+      const result = await gateway.handleUnpunchNumber(mockClient, {
+        number: 42,
+      });
 
-      expect(playerService.unpunchNumber).toHaveBeenCalledWith('player-456', 42);
+      expect(playerService.unpunchNumber).toHaveBeenCalledWith(
+        'player-456',
+        42,
+      );
       expect(result).toEqual({ success: true });
     });
   });
@@ -302,9 +335,14 @@ describe('GameGateway', () => {
       gameService.validateBingo.mockResolvedValue(true);
       playerService.getPlayerById.mockResolvedValue(mockPlayer);
 
-      const result = await gateway.handleValidateBingo(mockClient, { punchedNumbers: [1, 2, 3, 4, 5] });
+      const result = await gateway.handleValidateBingo(mockClient, {
+        punchedNumbers: [1, 2, 3, 4, 5],
+      });
 
-      expect(gameService.validateBingo).toHaveBeenCalledWith('player-456', [1, 2, 3, 4, 5]);
+      expect(gameService.validateBingo).toHaveBeenCalledWith(
+        'player-456',
+        [1, 2, 3, 4, 5],
+      );
       expect(playerService.getPlayerById).toHaveBeenCalledWith('player-456');
       expect(gateway.server.to).toHaveBeenCalledWith('game:game-123');
       expect(gateway.server.to('game:game-123').emit).toHaveBeenCalledWith(
@@ -312,7 +350,7 @@ describe('GameGateway', () => {
         expect.objectContaining({
           playerId: 'player-456',
           playerName: 'Test Player',
-        })
+        }),
       );
       expect(result).toEqual({ valid: true });
     });
@@ -327,9 +365,14 @@ describe('GameGateway', () => {
 
       gameService.validateBingo.mockResolvedValue(false);
 
-      const result = await gateway.handleValidateBingo(mockClient, { punchedNumbers: [1, 2, 3, 4, 5] });
+      const result = await gateway.handleValidateBingo(mockClient, {
+        punchedNumbers: [1, 2, 3, 4, 5],
+      });
 
-      expect(gameService.validateBingo).toHaveBeenCalledWith('player-456', [1, 2, 3, 4, 5]);
+      expect(gameService.validateBingo).toHaveBeenCalledWith(
+        'player-456',
+        [1, 2, 3, 4, 5],
+      );
       expect(playerService.getPlayerById).not.toHaveBeenCalled();
       expect(gateway.server.to).not.toHaveBeenCalled();
       expect(result).toEqual({ valid: false });
@@ -352,13 +395,15 @@ describe('GameGateway', () => {
 
       gameService.drawNumber.mockResolvedValue(mockResult);
 
-      const result = await gateway.handleAdminDrawNumber(mockClient, { gameId: 'game-123' });
+      const result = await gateway.handleAdminDrawNumber(mockClient, {
+        gameId: 'game-123',
+      });
 
       expect(gameService.drawNumber).toHaveBeenCalledWith('game-123');
       expect(gateway.server.to).toHaveBeenCalledWith('game:game-123');
       expect(gateway.server.to('game:game-123').emit).toHaveBeenCalledWith(
         'numberDrawn',
-        expect.any(OptimizedNumberDrawnDto)
+        expect.any(OptimizedNumberDrawnDto),
       );
       expect(result).toEqual({ success: true, number: 42 });
     });
@@ -376,7 +421,7 @@ describe('GameGateway', () => {
       expect(gateway.server.to).toHaveBeenCalledWith('game:game-123');
       expect(gateway.server.to('game:game-123').emit).toHaveBeenCalledWith(
         'gameStateChanged',
-        expect.any(OptimizedGameDto)
+        expect.any(OptimizedGameDto),
       );
     });
 
@@ -386,7 +431,7 @@ describe('GameGateway', () => {
       expect(gateway.server.to).toHaveBeenCalledWith('game:game-123');
       expect(gateway.server.to('game:game-123').emit).toHaveBeenCalledWith(
         'playerJoined',
-        expect.any(OptimizedPlayerJoinedDto)
+        expect.any(OptimizedPlayerJoinedDto),
       );
     });
 
@@ -396,7 +441,7 @@ describe('GameGateway', () => {
       expect(gateway.server.to).toHaveBeenCalledWith('game:game-123');
       expect(gateway.server.to('game:game-123').emit).toHaveBeenCalledWith(
         'numberDrawn',
-        expect.any(OptimizedNumberDrawnDto)
+        expect.any(OptimizedNumberDrawnDto),
       );
     });
   });
