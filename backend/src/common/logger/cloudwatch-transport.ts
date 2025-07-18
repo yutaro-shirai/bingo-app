@@ -1,7 +1,11 @@
 import * as winston from 'winston';
-import { CloudWatchLogsClient, PutLogEventsCommand } from '@aws-sdk/client-cloudwatch-logs';
+import {
+  CloudWatchLogsClient,
+  PutLogEventsCommand,
+} from '@aws-sdk/client-cloudwatch-logs';
 
-interface CloudWatchTransportOptions extends winston.transport.TransportStreamOptions {
+interface CloudWatchTransportOptions
+  extends winston.transport.TransportStreamOptions {
   logGroupName: string;
   logStreamName: string;
   awsRegion: string;
@@ -30,7 +34,8 @@ export class CloudWatchTransport extends winston.transport {
 
     this.logGroupName = options.logGroupName;
     this.logStreamName = options.logStreamName;
-    this.messageFormatter = options.messageFormatter || ((logEntry) => JSON.stringify(logEntry));
+    this.messageFormatter =
+      options.messageFormatter || ((logEntry) => JSON.stringify(logEntry));
     this.submissionInterval = options.submissionInterval || 2000; // Default to 2 seconds
     this.submissionRetryCount = options.submissionRetryCount || 3;
     this.batchSize = options.batchSize || 10000; // AWS limit is 10000 log events per batch
@@ -70,7 +75,7 @@ export class CloudWatchTransport extends winston.transport {
       this.timer = setInterval(() => {
         this.flushLogs();
       }, this.submissionInterval);
-      
+
       // Ensure the timer doesn't prevent the process from exiting
       if (this.timer.unref) {
         this.timer.unref();
@@ -92,7 +97,7 @@ export class CloudWatchTransport extends winston.transport {
 
     // Take a batch of logs
     const batch = this.logQueue.splice(0, this.batchSize);
-    
+
     try {
       // Format logs for CloudWatch
       const logEvents = batch.map((log) => ({
@@ -113,7 +118,7 @@ export class CloudWatchTransport extends winston.transport {
 
       // Send logs to CloudWatch
       const response = await this.client.send(command);
-      
+
       // Update sequence token for next batch
       this.sequenceToken = response.nextSequenceToken;
     } catch (error: any) {
@@ -129,7 +134,9 @@ export class CloudWatchTransport extends winston.transport {
         }
       } else if (error.name === 'ResourceNotFoundException') {
         // Log group or stream doesn't exist
-        console.error(`CloudWatch log group or stream not found: ${error.message}`);
+        console.error(
+          `CloudWatch log group or stream not found: ${error.message}`,
+        );
         // Put logs back in queue for retry after creation
         this.logQueue = [...batch, ...this.logQueue];
       } else {
