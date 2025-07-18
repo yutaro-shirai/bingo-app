@@ -123,7 +123,7 @@ describe('MessageOptimizer', () => {
         id: '123',
         circular: {},
       };
-      
+
       // Create circular reference
       message.circular.self = message;
 
@@ -231,7 +231,7 @@ describe('MessageOptimizer', () => {
         i: '123',
         circular: {},
       };
-      
+
       // Create circular reference
       message.circular.self = message;
 
@@ -262,7 +262,10 @@ describe('MessageOptimizer', () => {
         name: 'n',
       };
 
-      const result = MessageOptimizer.optimizeForTransmission(message, propertyMap);
+      const result = MessageOptimizer.optimizeForTransmission(
+        message,
+        propertyMap,
+      );
 
       expect(result).toEqual({
         i: '123',
