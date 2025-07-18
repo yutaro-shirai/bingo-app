@@ -12,9 +12,15 @@ export class AppLoggerService implements LoggerService {
   private logger: winston.Logger;
 
   constructor(private readonly configService: ConfigService) {
-    const environment = this.configService.get<string>('NODE_ENV', 'development');
+    const environment = this.configService.get<string>(
+      'NODE_ENV',
+      'development',
+    );
     const isProduction = environment === 'production';
-    const serviceName = this.configService.get<string>('SERVICE_NAME', 'bingo-service');
+    const serviceName = this.configService.get<string>(
+      'SERVICE_NAME',
+      'bingo-service',
+    );
 
     // System information for better debugging
     const systemInfo = {
@@ -46,11 +52,13 @@ export class AppLoggerService implements LoggerService {
       new winston.transports.Console({
         format: winston.format.combine(
           winston.format.colorize(),
-          winston.format.printf(({ timestamp, level, message, context, trace, ...meta }) => {
-            return `${timestamp} [${level}] [${context || 'Application'}] ${message}${
-              trace ? `\n${trace}` : ''
-            }${Object.keys(meta).length ? `\n${JSON.stringify(meta)}` : ''}`;
-          }),
+          winston.format.printf(
+            ({ timestamp, level, message, context, trace, ...meta }) => {
+              return `${timestamp} [${level}] [${context || 'Application'}] ${message}${
+                trace ? `\n${trace}` : ''
+              }${Object.keys(meta).length ? `\n${JSON.stringify(meta)}` : ''}`;
+            },
+          ),
         ),
       }),
     ];
@@ -60,9 +68,10 @@ export class AppLoggerService implements LoggerService {
 
     // Add CloudWatch transport when running in AWS Lambda
     if (isLambda) {
-      const functionName = process.env.AWS_LAMBDA_FUNCTION_NAME || 'bingo-backend';
+      const functionName =
+        process.env.AWS_LAMBDA_FUNCTION_NAME || 'bingo-backend';
       const region = process.env.AWS_REGION || 'us-east-1';
-      
+
       transports.push(
         new CloudWatchTransport({
           logGroupName: `/aws/lambda/${functionName}`,
@@ -70,7 +79,8 @@ export class AppLoggerService implements LoggerService {
           awsRegion: region,
           messageFormatter: (logEntry) => {
             // Format log entry for CloudWatch
-            const { timestamp, level, message, context, trace, ...meta } = logEntry;
+            const { timestamp, level, message, context, trace, ...meta } =
+              logEntry;
             return JSON.stringify({
               timestamp,
               level,
@@ -80,7 +90,7 @@ export class AppLoggerService implements LoggerService {
               ...meta,
             });
           },
-        })
+        }),
       );
     }
     // Add file transports in production (non-Lambda)
@@ -114,7 +124,7 @@ export class AppLoggerService implements LoggerService {
     this.logger = winston.createLogger({
       level: isProduction ? 'info' : 'debug',
       format: logFormat,
-      defaultMeta: { 
+      defaultMeta: {
         service: serviceName,
         environment,
         system: systemInfo,
@@ -126,43 +136,51 @@ export class AppLoggerService implements LoggerService {
         new winston.transports.Console({
           format: winston.format.combine(
             winston.format.colorize(),
-            winston.format.printf(({ timestamp, level, message, trace, ...meta }) => {
-              return `${timestamp} [${level}] [EXCEPTION] ${message}${
-                trace ? `\n${trace}` : ''
-              }${Object.keys(meta).length ? `\n${JSON.stringify(meta)}` : ''}`;
-            }),
+            winston.format.printf(
+              ({ timestamp, level, message, trace, ...meta }) => {
+                return `${timestamp} [${level}] [EXCEPTION] ${message}${
+                  trace ? `\n${trace}` : ''
+                }${Object.keys(meta).length ? `\n${JSON.stringify(meta)}` : ''}`;
+              },
+            ),
           ),
         }),
-        ...(isProduction ? [
-          new winston.transports.DailyRotateFile({
-            filename: 'logs/exceptions-%DATE%.log',
-            datePattern: 'YYYY-MM-DD',
-            zippedArchive: true,
-            maxSize: '20m',
-            maxFiles: '14d',
-          }),
-        ] : []),
+        ...(isProduction
+          ? [
+              new winston.transports.DailyRotateFile({
+                filename: 'logs/exceptions-%DATE%.log',
+                datePattern: 'YYYY-MM-DD',
+                zippedArchive: true,
+                maxSize: '20m',
+                maxFiles: '14d',
+              }),
+            ]
+          : []),
       ],
       rejectionHandlers: [
         new winston.transports.Console({
           format: winston.format.combine(
             winston.format.colorize(),
-            winston.format.printf(({ timestamp, level, message, trace, ...meta }) => {
-              return `${timestamp} [${level}] [REJECTION] ${message}${
-                trace ? `\n${trace}` : ''
-              }${Object.keys(meta).length ? `\n${JSON.stringify(meta)}` : ''}`;
-            }),
+            winston.format.printf(
+              ({ timestamp, level, message, trace, ...meta }) => {
+                return `${timestamp} [${level}] [REJECTION] ${message}${
+                  trace ? `\n${trace}` : ''
+                }${Object.keys(meta).length ? `\n${JSON.stringify(meta)}` : ''}`;
+              },
+            ),
           ),
         }),
-        ...(isProduction ? [
-          new winston.transports.DailyRotateFile({
-            filename: 'logs/rejections-%DATE%.log',
-            datePattern: 'YYYY-MM-DD',
-            zippedArchive: true,
-            maxSize: '20m',
-            maxFiles: '14d',
-          }),
-        ] : []),
+        ...(isProduction
+          ? [
+              new winston.transports.DailyRotateFile({
+                filename: 'logs/rejections-%DATE%.log',
+                datePattern: 'YYYY-MM-DD',
+                zippedArchive: true,
+                maxSize: '20m',
+                maxFiles: '14d',
+              }),
+            ]
+          : []),
       ],
     });
   }
@@ -189,17 +207,17 @@ export class AppLoggerService implements LoggerService {
     if (message instanceof Error) {
       // If it's an Error object, extract the message and stack
       const { message: msg, stack, name, code, ...meta } = message;
-      
+
       // Add error type and code for better categorization
       const errorMeta = {
         errorType: name || 'Error',
         errorCode: code,
         ...meta,
       };
-      
-      return this.logger.error(msg, { 
-        context, 
-        trace: stack, 
+
+      return this.logger.error(msg, {
+        context,
+        trace: stack,
         ...errorMeta,
         // Add request ID if available
         requestId: (meta as any).requestId || undefined,
@@ -213,40 +231,40 @@ export class AppLoggerService implements LoggerService {
 
     return this.logger.error(message, { context, trace });
   }
-  
+
   /**
    * Log critical errors that require immediate attention
    */
   critical(message: any, trace?: string, context?: string) {
     context = context || this.context;
-    
+
     // Log as error with critical flag
     if (message instanceof Error) {
       const { message: msg, stack, ...meta } = message;
-      return this.logger.error(msg, { 
-        context, 
-        trace: stack, 
-        ...meta, 
+      return this.logger.error(msg, {
+        context,
+        trace: stack,
+        ...meta,
         critical: true,
         // Add timestamp for easier correlation
         timestamp: new Date().toISOString(),
       });
     }
-    
+
     if (message instanceof Object) {
       const { message: msg, ...meta } = message;
-      return this.logger.error(msg as string, { 
-        context, 
-        trace, 
-        ...meta, 
+      return this.logger.error(msg as string, {
+        context,
+        trace,
+        ...meta,
         critical: true,
         timestamp: new Date().toISOString(),
       });
     }
-    
-    return this.logger.error(message, { 
-      context, 
-      trace, 
+
+    return this.logger.error(message, {
+      context,
+      trace,
       critical: true,
       timestamp: new Date().toISOString(),
     });
@@ -284,7 +302,7 @@ export class AppLoggerService implements LoggerService {
 
     return this.logger.verbose(message, { context });
   }
-  
+
   /**
    * Log a metric that can be used for CloudWatch metrics
    * @param metricName Name of the metric
@@ -292,7 +310,12 @@ export class AppLoggerService implements LoggerService {
    * @param unit Unit of the metric (Count, Milliseconds, Bytes, etc.)
    * @param dimensions Additional dimensions for the metric
    */
-  logMetric(metricName: string, value: number, unit: string = 'Count', dimensions: Record<string, string> = {}) {
+  logMetric(
+    metricName: string,
+    value: number,
+    unit: string = 'Count',
+    dimensions: Record<string, string> = {},
+  ) {
     // Format as a metric log that can be parsed by CloudWatch
     const metric = {
       metricName,
@@ -301,7 +324,7 @@ export class AppLoggerService implements LoggerService {
       dimensions,
       timestamp: new Date().toISOString(),
     };
-    
+
     // Log with special context for filtering
     this.logger.info(`METRIC: ${metricName}=${value}${unit}`, {
       context: 'Metrics',
@@ -309,7 +332,10 @@ export class AppLoggerService implements LoggerService {
       // Add standard dimensions
       dimensions: {
         ...dimensions,
-        Service: this.configService.get<string>('SERVICE_NAME', 'bingo-service'),
+        Service: this.configService.get<string>(
+          'SERVICE_NAME',
+          'bingo-service',
+        ),
         Environment: this.configService.get<string>('NODE_ENV', 'development'),
       },
     });
