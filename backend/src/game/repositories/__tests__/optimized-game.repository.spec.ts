@@ -52,8 +52,8 @@ describe('OptimizedGameRepository', () => {
     }).compile();
 
     repository = module.get<OptimizedGameRepository>(OptimizedGameRepository);
-    dynamoDBService = module.get(DynamoDBService) as jest.Mocked<DynamoDBService>;
-    configService = module.get(ConfigService) as jest.Mocked<ConfigService>;
+    dynamoDBService = module.get(DynamoDBService);
+    configService = module.get(ConfigService);
   });
 
   describe('findById', () => {
@@ -78,7 +78,9 @@ describe('OptimizedGameRepository', () => {
       const result = await repository.findById('test-id');
 
       expect(result).toEqual(mockGame);
-      expect((repository as any).cache.get).toHaveBeenCalledWith('game:test-id');
+      expect((repository as any).cache.get).toHaveBeenCalledWith(
+        'game:test-id',
+      );
       expect(dynamoDBService.documentClient.send).not.toHaveBeenCalled();
     });
 
@@ -108,16 +110,21 @@ describe('OptimizedGameRepository', () => {
       const result = await repository.findById('test-id');
 
       expect(result).toEqual(mockGame);
-      expect((repository as any).cache.get).toHaveBeenCalledWith('game:test-id');
+      expect((repository as any).cache.get).toHaveBeenCalledWith(
+        'game:test-id',
+      );
       expect(dynamoDBService.documentClient.send).toHaveBeenCalledWith(
         expect.objectContaining({
           input: expect.objectContaining({
             TableName: 'GameTable',
             Key: { id: 'test-id' },
           }),
-        })
+        }),
       );
-      expect((repository as any).cache.set).toHaveBeenCalledWith('game:test-id', mockGame);
+      expect((repository as any).cache.set).toHaveBeenCalledWith(
+        'game:test-id',
+        mockGame,
+      );
     });
 
     it('should return null if game not found in cache or DynamoDB', async () => {
@@ -132,7 +139,9 @@ describe('OptimizedGameRepository', () => {
       const result = await repository.findById('test-id');
 
       expect(result).toBeNull();
-      expect((repository as any).cache.get).toHaveBeenCalledWith('game:test-id');
+      expect((repository as any).cache.get).toHaveBeenCalledWith(
+        'game:test-id',
+      );
       expect(dynamoDBService.documentClient.send).toHaveBeenCalled();
       expect((repository as any).cache.set).not.toHaveBeenCalled();
     });
@@ -142,12 +151,16 @@ describe('OptimizedGameRepository', () => {
       (repository as any).cache.get.mockReturnValueOnce(null);
 
       // DynamoDB error
-      dynamoDBService.documentClient.send.mockRejectedValueOnce(new Error('DynamoDB error'));
+      dynamoDBService.documentClient.send.mockRejectedValueOnce(
+        new Error('DynamoDB error'),
+      );
 
       const result = await repository.findById('test-id');
 
       expect(result).toBeNull();
-      expect((repository as any).cache.get).toHaveBeenCalledWith('game:test-id');
+      expect((repository as any).cache.get).toHaveBeenCalledWith(
+        'game:test-id',
+      );
       expect(dynamoDBService.documentClient.send).toHaveBeenCalled();
     });
   });
@@ -174,7 +187,9 @@ describe('OptimizedGameRepository', () => {
       const result = await repository.findByCode('ABC123');
 
       expect(result).toEqual(mockGame);
-      expect((repository as any).cache.get).toHaveBeenCalledWith('gameCode:ABC123');
+      expect((repository as any).cache.get).toHaveBeenCalledWith(
+        'gameCode:ABC123',
+      );
       expect(dynamoDBService.documentClient.send).not.toHaveBeenCalled();
     });
 
@@ -204,7 +219,9 @@ describe('OptimizedGameRepository', () => {
       const result = await repository.findByCode('ABC123');
 
       expect(result).toEqual(mockGame);
-      expect((repository as any).cache.get).toHaveBeenCalledWith('gameCode:ABC123');
+      expect((repository as any).cache.get).toHaveBeenCalledWith(
+        'gameCode:ABC123',
+      );
       expect(dynamoDBService.documentClient.send).toHaveBeenCalledWith(
         expect.objectContaining({
           input: expect.objectContaining({
@@ -213,10 +230,16 @@ describe('OptimizedGameRepository', () => {
             KeyConditionExpression: 'code = :code',
             ExpressionAttributeValues: { ':code': 'ABC123' },
           }),
-        })
+        }),
       );
-      expect((repository as any).cache.set).toHaveBeenCalledWith('game:test-id', mockGame);
-      expect((repository as any).cache.set).toHaveBeenCalledWith('gameCode:ABC123', mockGame);
+      expect((repository as any).cache.set).toHaveBeenCalledWith(
+        'game:test-id',
+        mockGame,
+      );
+      expect((repository as any).cache.set).toHaveBeenCalledWith(
+        'gameCode:ABC123',
+        mockGame,
+      );
     });
   });
 
@@ -251,10 +274,16 @@ describe('OptimizedGameRepository', () => {
               status: GameStatus.CREATED,
             }),
           }),
-        })
+        }),
       );
-      expect((repository as any).cache.set).toHaveBeenCalledWith('game:test-id', mockGame);
-      expect((repository as any).cache.set).toHaveBeenCalledWith('gameCode:ABC123', mockGame);
+      expect((repository as any).cache.set).toHaveBeenCalledWith(
+        'game:test-id',
+        mockGame,
+      );
+      expect((repository as any).cache.set).toHaveBeenCalledWith(
+        'gameCode:ABC123',
+        mockGame,
+      );
     });
 
     it('should handle errors when creating a game', async () => {
@@ -272,9 +301,13 @@ describe('OptimizedGameRepository', () => {
         adminConnections: [],
       };
 
-      dynamoDBService.documentClient.send.mockRejectedValueOnce(new Error('DynamoDB error'));
+      dynamoDBService.documentClient.send.mockRejectedValueOnce(
+        new Error('DynamoDB error'),
+      );
 
-      await expect(repository.create(mockGame)).rejects.toThrow('DynamoDB error');
+      await expect(repository.create(mockGame)).rejects.toThrow(
+        'DynamoDB error',
+      );
       expect(dynamoDBService.documentClient.send).toHaveBeenCalled();
       expect((repository as any).cache.set).not.toHaveBeenCalled();
     });
@@ -317,10 +350,16 @@ describe('OptimizedGameRepository', () => {
             Key: { id: gameId },
             UpdateExpression: expect.stringContaining('SET'),
           }),
-        })
+        }),
       );
-      expect((repository as any).cache.set).toHaveBeenCalledWith('game:test-id', updatedGame);
-      expect((repository as any).cache.set).toHaveBeenCalledWith('gameCode:ABC123', updatedGame);
+      expect((repository as any).cache.set).toHaveBeenCalledWith(
+        'game:test-id',
+        updatedGame,
+      );
+      expect((repository as any).cache.set).toHaveBeenCalledWith(
+        'gameCode:ABC123',
+        updatedGame,
+      );
     });
 
     it('should throw NotFoundException if game not found during update', async () => {
@@ -333,7 +372,9 @@ describe('OptimizedGameRepository', () => {
         Attributes: null,
       });
 
-      await expect(repository.update(gameId, updateData)).rejects.toThrow(NotFoundException);
+      await expect(repository.update(gameId, updateData)).rejects.toThrow(
+        NotFoundException,
+      );
       expect(dynamoDBService.documentClient.send).toHaveBeenCalled();
       expect((repository as any).cache.set).not.toHaveBeenCalled();
     });
@@ -342,7 +383,9 @@ describe('OptimizedGameRepository', () => {
       const gameId = 'test-id';
       const updateData = {};
 
-      await expect(repository.update(gameId, updateData)).rejects.toThrow('No attributes to update');
+      await expect(repository.update(gameId, updateData)).rejects.toThrow(
+        'No attributes to update',
+      );
       expect(dynamoDBService.documentClient.send).not.toHaveBeenCalled();
     });
   });
@@ -381,10 +424,16 @@ describe('OptimizedGameRepository', () => {
             Key: { id: gameId },
             UpdateExpression: expect.stringContaining('SET drawnNumbers'),
           }),
-        })
+        }),
       );
-      expect((repository as any).cache.set).toHaveBeenCalledWith('game:test-id', updatedGame);
-      expect((repository as any).cache.set).toHaveBeenCalledWith('gameCode:ABC123', updatedGame);
+      expect((repository as any).cache.set).toHaveBeenCalledWith(
+        'game:test-id',
+        updatedGame,
+      );
+      expect((repository as any).cache.set).toHaveBeenCalledWith(
+        'gameCode:ABC123',
+        updatedGame,
+      );
     });
   });
 
@@ -420,17 +469,25 @@ describe('OptimizedGameRepository', () => {
             Key: { id: gameId },
             UpdateExpression: 'ADD bingoCount :one',
           }),
-        })
+        }),
       );
-      expect((repository as any).cache.set).toHaveBeenCalledWith('game:test-id', updatedGame);
-      expect((repository as any).cache.set).toHaveBeenCalledWith('gameCode:ABC123', updatedGame);
+      expect((repository as any).cache.set).toHaveBeenCalledWith(
+        'game:test-id',
+        updatedGame,
+      );
+      expect((repository as any).cache.set).toHaveBeenCalledWith(
+        'gameCode:ABC123',
+        updatedGame,
+      );
     });
   });
 
   describe('clearCache', () => {
     it('should clear cache for a specific game', () => {
       repository.clearCache('test-id');
-      expect((repository as any).cache.del).toHaveBeenCalledWith('game:test-id');
+      expect((repository as any).cache.del).toHaveBeenCalledWith(
+        'game:test-id',
+      );
     });
   });
 

@@ -54,16 +54,16 @@ export class OptimizedGameRepository implements IGameRepository {
         Key: { id },
       });
       const result = await this.dynamodbService.documentClient.send(command);
-      
+
       if (!result.Item) {
         return null;
       }
-      
+
       const game = result.Item as GameEntity;
-      
+
       // Cache the result
       this.cache.set(`game:${id}`, game);
-      
+
       return game;
     } catch (error) {
       this.logger.error(`Error finding game by ID: ${error.message}`);
@@ -75,12 +75,12 @@ export class OptimizedGameRepository implements IGameRepository {
     if (!ids.length) {
       return [];
     }
-    
+
     try {
       // Check cache first
       const cachedGames: GameEntity[] = [];
       const uncachedIds: string[] = [];
-      
+
       for (const id of ids) {
         const cachedGame = this.cache.get<GameEntity>(`game:${id}`);
         if (cachedGame) {
@@ -89,54 +89,55 @@ export class OptimizedGameRepository implements IGameRepository {
           uncachedIds.push(id);
         }
       }
-      
+
       // If all games were cached, return them
       if (uncachedIds.length === 0) {
         return cachedGames;
       }
-      
+
       // Fetch uncached games in batches of 25 (DynamoDB limit)
       const games: GameEntity[] = [...cachedGames];
-      
+
       // Use Promise.all to fetch batches in parallel
       const batchPromises = [];
-      
+
       for (let i = 0; i < uncachedIds.length; i += 25) {
         const batchIds = uncachedIds.slice(i, i + 25);
-        
+
         const command = new BatchGetCommand({
           RequestItems: {
             [TABLE_NAME]: {
-              Keys: batchIds.map(id => ({ id })),
+              Keys: batchIds.map((id) => ({ id })),
               // Only request the attributes we need
-              ProjectionExpression: "id, code, #status, createdAt, expiresAt, drawMode, drawnNumbers, playerCount, activePlayerCount, bingoCount",
+              ProjectionExpression:
+                'id, code, #status, createdAt, expiresAt, drawMode, drawnNumbers, playerCount, activePlayerCount, bingoCount',
               ExpressionAttributeNames: {
-                "#status": "status" // status is a reserved word
-              }
+                '#status': 'status', // status is a reserved word
+              },
             },
           },
         });
-        
+
         batchPromises.push(this.dynamodbService.documentClient.send(command));
       }
-      
+
       // Wait for all batches to complete
       const batchResults = await Promise.all(batchPromises);
-      
+
       // Process results
       for (const result of batchResults) {
         if (result.Responses && result.Responses[TABLE_NAME]) {
           const fetchedGames = result.Responses[TABLE_NAME] as GameEntity[];
-          
+
           // Cache the results
           for (const game of fetchedGames) {
             this.cache.set(`game:${game.id}`, game);
           }
-          
+
           games.push(...fetchedGames);
         }
       }
-      
+
       return games;
     } catch (error) {
       this.logger.error(`Error finding games by IDs: ${error.message}`);
@@ -160,17 +161,17 @@ export class OptimizedGameRepository implements IGameRepository {
         Limit: 1,
       });
       const result = await this.dynamodbService.documentClient.send(command);
-      
+
       if (!result.Items || result.Items.length === 0) {
         return null;
       }
-      
+
       const game = result.Items[0] as GameEntity;
-      
+
       // Cache the result
       this.cache.set(`game:${game.id}`, game);
       this.cache.set(`gameCode:${code}`, game);
-      
+
       return game;
     } catch (error) {
       this.logger.error(`Error finding game by code: ${error.message}`);
@@ -182,7 +183,7 @@ export class OptimizedGameRepository implements IGameRepository {
     try {
       // Calculate TTL (expiration timestamp)
       const ttl = Math.floor(game.expiresAt.getTime() / 1000);
-      
+
       const command = new PutCommand({
         TableName: TABLE_NAME,
         Item: {
@@ -191,11 +192,11 @@ export class OptimizedGameRepository implements IGameRepository {
         },
       });
       await this.dynamodbService.documentClient.send(command);
-      
+
       // Cache the result
       this.cache.set(`game:${game.id}`, game);
       this.cache.set(`gameCode:${game.code}`, game);
-      
+
       return game;
     } catch (error) {
       this.logger.error(`Error creating game: ${error.message}`);
@@ -209,19 +210,20 @@ export class OptimizedGameRepository implements IGameRepository {
       const updateExpressions: string[] = [];
       const expressionAttributeNames: Record<string, string> = {};
       const expressionAttributeValues: Record<string, any> = {};
-      
+
       Object.entries(game).forEach(([key, value]) => {
-        if (key !== 'id') { // Skip primary key
+        if (key !== 'id') {
+          // Skip primary key
           updateExpressions.push(`#${key} = :${key}`);
           expressionAttributeNames[`#${key}`] = key;
           expressionAttributeValues[`:${key}`] = value;
         }
       });
-      
+
       if (updateExpressions.length === 0) {
         throw new Error('No attributes to update');
       }
-      
+
       const command = new UpdateCommand({
         TableName: TABLE_NAME,
         Key: { id },
@@ -230,21 +232,21 @@ export class OptimizedGameRepository implements IGameRepository {
         ExpressionAttributeValues: expressionAttributeValues,
         ReturnValues: 'ALL_NEW',
       });
-      
+
       const result = await this.dynamodbService.documentClient.send(command);
-      
+
       if (!result.Attributes) {
         throw new NotFoundException(`Game with ID ${id} not found`);
       }
-      
+
       const updatedGame = result.Attributes as GameEntity;
-      
+
       // Update cache
       this.cache.set(`game:${id}`, updatedGame);
       if (updatedGame.code) {
         this.cache.set(`gameCode:${updatedGame.code}`, updatedGame);
       }
-      
+
       return updatedGame;
     } catch (error) {
       this.logger.error(`Error updating game: ${error.message}`);
@@ -256,13 +258,13 @@ export class OptimizedGameRepository implements IGameRepository {
     try {
       // Get game first to get the code for cache invalidation
       const game = await this.findById(id);
-      
+
       const command = new DeleteCommand({
         TableName: TABLE_NAME,
         Key: { id },
       });
       await this.dynamodbService.documentClient.send(command);
-      
+
       // Invalidate cache
       this.cache.del(`game:${id}`);
       if (game?.code) {
@@ -294,20 +296,21 @@ export class OptimizedGameRepository implements IGameRepository {
           ':status': status,
         },
         // Only request the attributes we need
-        ProjectionExpression: "id, code, #status, createdAt, expiresAt, drawMode, drawnNumbers, playerCount, activePlayerCount, bingoCount",
+        ProjectionExpression:
+          'id, code, #status, createdAt, expiresAt, drawMode, drawnNumbers, playerCount, activePlayerCount, bingoCount',
         // Limit results for better performance
         Limit: 100,
       });
       const result = await this.dynamodbService.documentClient.send(command);
-      
+
       const games = (result.Items || []) as GameEntity[];
-      
+
       // Cache individual games and the status result
       for (const game of games) {
         this.cache.set(`game:${game.id}`, game);
       }
       this.cache.set(cacheKey, games, 30); // Cache status queries for less time
-      
+
       return games;
     } catch (error) {
       this.logger.error(`Error finding games by status: ${error.message}`);
@@ -322,17 +325,18 @@ export class OptimizedGameRepository implements IGameRepository {
       if (!game) {
         throw new NotFoundException(`Game with ID ${id} not found`);
       }
-      
+
       // If number is already drawn, return the current game state
       if (game.drawnNumbers && game.drawnNumbers.includes(number)) {
         return game;
       }
-      
+
       // Use conditional update to ensure atomicity
       const command = new UpdateCommand({
         TableName: TABLE_NAME,
         Key: { id },
-        UpdateExpression: 'SET drawnNumbers = list_append(if_not_exists(drawnNumbers, :empty_list), :number), lastDrawnAt = :now',
+        UpdateExpression:
+          'SET drawnNumbers = list_append(if_not_exists(drawnNumbers, :empty_list), :number), lastDrawnAt = :now',
         ExpressionAttributeValues: {
           ':number': [number],
           ':empty_list': [],
@@ -342,23 +346,23 @@ export class OptimizedGameRepository implements IGameRepository {
         // Only update if the number is not already in the list
         ConditionExpression: 'NOT contains(drawnNumbers, :num)',
         // Only return the updated fields to reduce network traffic
-        ProjectionExpression: "id, code, drawnNumbers, lastDrawnAt",
+        ProjectionExpression: 'id, code, drawnNumbers, lastDrawnAt',
         ReturnValues: 'ALL_NEW',
       });
-      
+
       try {
         const result = await this.dynamodbService.documentClient.send(command);
-        
+
         if (!result.Attributes) {
           throw new NotFoundException(`Game with ID ${id} not found`);
         }
-        
+
         // Get the cached game and update only the changed fields
         const cachedGame = this.cache.get<GameEntity>(`game:${id}`);
         const updatedFields = result.Attributes as Partial<GameEntity>;
-        
+
         let gameToCache: GameEntity;
-        
+
         if (cachedGame) {
           // Update only the changed fields
           gameToCache = {
@@ -374,13 +378,13 @@ export class OptimizedGameRepository implements IGameRepository {
             lastDrawnAt: updatedFields.lastDrawnAt,
           };
         }
-        
+
         // Update cache
         this.cache.set(`game:${id}`, gameToCache);
         if (gameToCache.code) {
           this.cache.set(`gameCode:${gameToCache.code}`, gameToCache);
         }
-        
+
         return gameToCache;
       } catch (error) {
         // If condition failed (number already drawn), return the current game
@@ -398,7 +402,7 @@ export class OptimizedGameRepository implements IGameRepository {
   async updateExpiration(id: string, expiresAt: Date): Promise<GameEntity> {
     try {
       const ttl = Math.floor(expiresAt.getTime() / 1000);
-      
+
       const command = new UpdateCommand({
         TableName: TABLE_NAME,
         Key: { id },
@@ -409,21 +413,21 @@ export class OptimizedGameRepository implements IGameRepository {
         },
         ReturnValues: 'ALL_NEW',
       });
-      
+
       const result = await this.dynamodbService.documentClient.send(command);
-      
+
       if (!result.Attributes) {
         throw new NotFoundException(`Game with ID ${id} not found`);
       }
-      
+
       const updatedGame = result.Attributes as GameEntity;
-      
+
       // Update cache
       this.cache.set(`game:${id}`, updatedGame);
       if (updatedGame.code) {
         this.cache.set(`gameCode:${updatedGame.code}`, updatedGame);
       }
-      
+
       return updatedGame;
     } catch (error) {
       this.logger.error(`Error updating expiration: ${error.message}`);
@@ -438,13 +442,14 @@ export class OptimizedGameRepository implements IGameRepository {
   ): Promise<GameEntity> {
     try {
       let command;
-      
+
       if (isConnected) {
         // Add connection ID to adminConnections
         command = new UpdateCommand({
           TableName: TABLE_NAME,
           Key: { id },
-          UpdateExpression: 'SET adminConnections = list_append(if_not_exists(adminConnections, :empty_list), :connectionId)',
+          UpdateExpression:
+            'SET adminConnections = list_append(if_not_exists(adminConnections, :empty_list), :connectionId)',
           ExpressionAttributeValues: {
             ':connectionId': [connectionId],
             ':empty_list': [],
@@ -458,13 +463,13 @@ export class OptimizedGameRepository implements IGameRepository {
         if (!game) {
           throw new NotFoundException(`Game with ID ${id} not found`);
         }
-        
+
         const connectionIndex = game.adminConnections?.indexOf(connectionId);
         if (connectionIndex === undefined || connectionIndex === -1) {
           // Connection ID not found, nothing to do
           return game;
         }
-        
+
         command = new UpdateCommand({
           TableName: TABLE_NAME,
           Key: { id },
@@ -472,21 +477,21 @@ export class OptimizedGameRepository implements IGameRepository {
           ReturnValues: 'ALL_NEW',
         });
       }
-      
+
       const result = await this.dynamodbService.documentClient.send(command);
-      
+
       if (!result.Attributes) {
         throw new NotFoundException(`Game with ID ${id} not found`);
       }
-      
+
       const updatedGame = result.Attributes as GameEntity;
-      
+
       // Update cache
       this.cache.set(`game:${id}`, updatedGame);
       if (updatedGame.code) {
         this.cache.set(`gameCode:${updatedGame.code}`, updatedGame);
       }
-      
+
       return updatedGame;
     } catch (error) {
       this.logger.error(`Error updating admin connection: ${error.message}`);
@@ -505,22 +510,22 @@ export class OptimizedGameRepository implements IGameRepository {
           ':one': 1,
         },
         // Only return the updated fields to reduce network traffic
-        ProjectionExpression: "id, code, playerCount, activePlayerCount",
+        ProjectionExpression: 'id, code, playerCount, activePlayerCount',
         ReturnValues: 'ALL_NEW',
       });
-      
+
       const result = await this.dynamodbService.documentClient.send(command);
-      
+
       if (!result.Attributes) {
         throw new NotFoundException(`Game with ID ${id} not found`);
       }
-      
+
       // Get the cached game and update only the changed fields
       const cachedGame = this.cache.get<GameEntity>(`game:${id}`);
       const updatedGame = result.Attributes as Partial<GameEntity>;
-      
+
       let gameToCache: GameEntity;
-      
+
       if (cachedGame) {
         // Update only the changed fields
         gameToCache = {
@@ -536,13 +541,13 @@ export class OptimizedGameRepository implements IGameRepository {
         }
         gameToCache = fullGame;
       }
-      
+
       // Update cache
       this.cache.set(`game:${id}`, gameToCache);
       if (gameToCache.code) {
         this.cache.set(`gameCode:${gameToCache.code}`, gameToCache);
       }
-      
+
       return gameToCache;
     } catch (error) {
       this.logger.error(`Error incrementing player count: ${error.message}`);
@@ -563,21 +568,21 @@ export class OptimizedGameRepository implements IGameRepository {
         ConditionExpression: 'activePlayerCount > :zero',
         ReturnValues: 'ALL_NEW',
       });
-      
+
       const result = await this.dynamodbService.documentClient.send(command);
-      
+
       if (!result.Attributes) {
         throw new NotFoundException(`Game with ID ${id} not found`);
       }
-      
+
       const updatedGame = result.Attributes as GameEntity;
-      
+
       // Update cache
       this.cache.set(`game:${id}`, updatedGame);
       if (updatedGame.code) {
         this.cache.set(`gameCode:${updatedGame.code}`, updatedGame);
       }
-      
+
       return updatedGame;
     } catch (error) {
       this.logger.error(`Error decrementing player count: ${error.message}`);
@@ -601,21 +606,21 @@ export class OptimizedGameRepository implements IGameRepository {
         },
         ReturnValues: 'ALL_NEW',
       });
-      
+
       const result = await this.dynamodbService.documentClient.send(command);
-      
+
       if (!result.Attributes) {
         throw new NotFoundException(`Game with ID ${id} not found`);
       }
-      
+
       const updatedGame = result.Attributes as GameEntity;
-      
+
       // Update cache
       this.cache.set(`game:${id}`, updatedGame);
       if (updatedGame.code) {
         this.cache.set(`gameCode:${updatedGame.code}`, updatedGame);
       }
-      
+
       return updatedGame;
     } catch (error) {
       this.logger.error(`Error incrementing bingo count: ${error.message}`);

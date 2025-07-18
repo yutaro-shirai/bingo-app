@@ -109,19 +109,19 @@ describe('PlayerRepository', () => {
         ...mockPlayer,
         name: 'Updated Name',
       };
-      
+
       // Mock findById to return a player
       mockDynamoDBService.documentClient.send.mockResolvedValueOnce({
         Item: mockPlayer,
       });
-      
+
       // Mock PutCommand for update
       mockDynamoDBService.documentClient.send.mockResolvedValueOnce({});
-      
+
       const result = await repository.update('test-player-id', {
         name: 'Updated Name',
       });
-      
+
       expect(result.name).toBe('Updated Name');
       expect(mockDynamoDBService.documentClient.send).toHaveBeenCalledTimes(2);
     });
@@ -130,7 +130,7 @@ describe('PlayerRepository', () => {
       mockDynamoDBService.documentClient.send.mockResolvedValueOnce({
         Item: null,
       });
-      
+
       await expect(
         repository.update('test-player-id', { name: 'Updated Name' }),
       ).rejects.toThrow('Player not found');
@@ -141,12 +141,12 @@ describe('PlayerRepository', () => {
       mockDynamoDBService.documentClient.send.mockResolvedValueOnce({
         Item: createMockPlayer(),
       });
-      
+
       // Mock update to fail
       mockDynamoDBService.documentClient.send.mockRejectedValueOnce(
         new Error('DynamoDB error'),
       );
-      
+
       await expect(
         repository.update('test-player-id', { name: 'Updated Name' }),
       ).rejects.toThrow();
@@ -156,7 +156,9 @@ describe('PlayerRepository', () => {
   describe('delete', () => {
     it('should delete a player without error', async () => {
       mockDynamoDBService.documentClient.send.mockResolvedValueOnce({});
-      await expect(repository.delete('test-player-id')).resolves.toBeUndefined();
+      await expect(
+        repository.delete('test-player-id'),
+      ).resolves.toBeUndefined();
       expect(mockDynamoDBService.documentClient.send).toHaveBeenCalledTimes(1);
     });
 
@@ -197,7 +199,7 @@ describe('PlayerRepository', () => {
     it('should update player card state successfully', async () => {
       // Test implementation
     });
-    
+
     it('should throw error if player not found', async () => {
       // Test implementation
     });
@@ -208,7 +210,7 @@ describe('PlayerRepository', () => {
     it('should update player connection state successfully', async () => {
       // Test implementation
     });
-    
+
     it('should throw error if player not found', async () => {
       // Test implementation
     });
