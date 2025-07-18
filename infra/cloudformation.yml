@@ -60,6 +60,8 @@ Resources:
           AttributeType: S
         - AttributeName: connectionId
           AttributeType: S
+        - AttributeName: hasBingo
+          AttributeType: S
       KeySchema:
         - AttributeName: id
           KeyType: HASH
@@ -74,6 +76,14 @@ Resources:
           KeySchema:
             - AttributeName: connectionId
               KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+        - IndexName: BingoIndex
+          KeySchema:
+            - AttributeName: gameId
+              KeyType: HASH
+            - AttributeName: hasBingo
+              KeyType: RANGE
           Projection:
             ProjectionType: ALL
       Tags:
