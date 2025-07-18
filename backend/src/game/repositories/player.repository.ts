@@ -300,7 +300,7 @@ export class PlayerRepository implements IPlayerRepository {
       throw error;
     }
   }
-}
+
   /**
    * Helper method to convert Date objects to ISO strings for DynamoDB
    */
@@ -382,4 +382,5 @@ export class PlayerRepository implements IPlayerRepository {
       expressionAttributeNames,
     };
   }
+}
 }
