@@ -28,10 +28,10 @@ describe('Game Flow (e2e)', () => {
     await app.init();
 
     // Create admin token for authentication
-    adminToken = jwtService.sign({ 
-      sub: 'admin', 
+    adminToken = jwtService.sign({
+      sub: 'admin',
       username: 'admin',
-      isAdmin: true 
+      isAdmin: true,
     });
   });
 
@@ -39,15 +39,15 @@ describe('Game Flow (e2e)', () => {
     if (player1Socket && player1Socket.connected) {
       player1Socket.disconnect();
     }
-    
+
     if (player2Socket && player2Socket.connected) {
       player2Socket.disconnect();
     }
-    
+
     if (adminSocket && adminSocket.connected) {
       adminSocket.disconnect();
     }
-    
+
     await app.close();
   });
 
@@ -64,7 +64,7 @@ describe('Game Flow (e2e)', () => {
 
     gameId = createGameResponse.body.id;
     gameCode = createGameResponse.body.code;
-    
+
     expect(gameId).toBeDefined();
     expect(gameCode).toBeDefined();
     expect(createGameResponse.body.status).toBe(GameStatus.CREATED);
@@ -99,7 +99,7 @@ describe('Game Flow (e2e)', () => {
 
     // Step 4: Connect WebSockets
     const wsUrl = 'http://localhost:3001'; // Adjust to match your WebSocket server URL
-    
+
     player1Socket = io(wsUrl, {
       extraHeaders: {
         'player-id': player1Id,
@@ -118,14 +118,14 @@ describe('Game Flow (e2e)', () => {
 
     adminSocket = io(wsUrl, {
       extraHeaders: {
-        'authorization': `Bearer ${adminToken}`,
+        authorization: `Bearer ${adminToken}`,
         'game-id': gameId,
       },
       autoConnect: true,
     });
 
     // Wait for connections to establish
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await new Promise((resolve) => setTimeout(resolve, 1000));
 
     // Step 5: Admin starts the game
     const startGameResponse = await request(app.getHttpServer())
@@ -154,7 +154,7 @@ describe('Game Flow (e2e)', () => {
       .expect(200);
 
     const player1Card = player1GetResponse.body.card;
-    
+
     // Find numbers on player's card that have been drawn
     const punchedNumbers = [];
     for (let row = 0; row < 5; row++) {

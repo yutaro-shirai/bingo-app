@@ -74,9 +74,7 @@ describe('AuthController (e2e)', () => {
     });
 
     it('should reject requests without token', async () => {
-      await request(app.getHttpServer())
-        .get('/auth/profile')
-        .expect(401);
+      await request(app.getHttpServer()).get('/auth/profile').expect(401);
     });
   });
 });

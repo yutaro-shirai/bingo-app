@@ -23,15 +23,15 @@ describe('WebSocket Gateway (e2e)', () => {
     app = moduleFixture.createNestApplication();
     jwtService = moduleFixture.get<JwtService>(JwtService);
     await app.init();
-    
+
     // Get the HTTP server
     const httpServer = app.getHttpServer();
-    
+
     // Create admin token for authentication
-    adminToken = jwtService.sign({ 
-      sub: 'admin', 
+    adminToken = jwtService.sign({
+      sub: 'admin',
       username: 'admin',
-      isAdmin: true 
+      isAdmin: true,
     });
 
     // Create a game for testing
@@ -47,18 +47,16 @@ describe('WebSocket Gateway (e2e)', () => {
     gameCode = gameResponse.body.code;
 
     // Create a player for testing
-    const playerResponse = await request(httpServer)
-      .post('/player/join')
-      .send({
-        gameCode,
-        playerName: 'Test Player',
-      });
+    const playerResponse = await request(httpServer).post('/player/join').send({
+      gameCode,
+      playerName: 'Test Player',
+    });
 
     const playerId = playerResponse.body.id;
 
     // Connect WebSocket clients
     const wsUrl = 'http://localhost:3001'; // Adjust to match your WebSocket server URL
-    
+
     // Connect player socket
     playerSocket = io(wsUrl, {
       extraHeaders: {
@@ -71,7 +69,7 @@ describe('WebSocket Gateway (e2e)', () => {
     // Connect admin socket
     adminSocket = io(wsUrl, {
       extraHeaders: {
-        'authorization': `Bearer ${adminToken}`,
+        authorization: `Bearer ${adminToken}`,
         'game-id': gameId,
       },
       autoConnect: false,
@@ -82,11 +80,11 @@ describe('WebSocket Gateway (e2e)', () => {
     if (playerSocket && playerSocket.connected) {
       playerSocket.disconnect();
     }
-    
+
     if (adminSocket && adminSocket.connected) {
       adminSocket.disconnect();
     }
-    
+
     await app.close();
   });
 
@@ -96,11 +94,11 @@ describe('WebSocket Gateway (e2e)', () => {
         expect(playerSocket.connected).toBe(true);
         done();
       });
-      
+
       playerSocket.on('connect_error', (err) => {
         done.fail(`Connection error: ${err.message}`);
       });
-      
+
       playerSocket.connect();
     });
 
@@ -109,11 +107,11 @@ describe('WebSocket Gateway (e2e)', () => {
         expect(adminSocket.connected).toBe(true);
         done();
       });
-      
+
       adminSocket.on('connect_error', (err) => {
         done.fail(`Connection error: ${err.message}`);
       });
-      
+
       adminSocket.connect();
     });
 

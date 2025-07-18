@@ -22,10 +22,10 @@ describe('GameController (e2e)', () => {
     await app.init();
 
     // Create admin token for authentication
-    adminToken = jwtService.sign({ 
-      sub: 'admin', 
+    adminToken = jwtService.sign({
+      sub: 'admin',
       username: 'admin',
-      isAdmin: true 
+      isAdmin: true,
     });
   });
 
@@ -225,10 +225,10 @@ describe('GameController (e2e)', () => {
         .expect(200);
 
       const player = playerResponse.body;
-      
+
       // Get the first row of numbers from the player's card
       const firstRowNumbers = player.card.grid[0];
-      
+
       // Draw numbers until all numbers in the first row are drawn
       for (const number of firstRowNumbers) {
         // This is a simplified approach - in a real test we would need to mock the random number generation

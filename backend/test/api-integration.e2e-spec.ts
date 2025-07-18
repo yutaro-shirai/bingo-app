@@ -20,10 +20,10 @@ describe('API Integration Tests (e2e)', () => {
     await app.init();
 
     // Create admin token for authentication
-    adminToken = jwtService.sign({ 
-      sub: 'admin', 
+    adminToken = jwtService.sign({
+      sub: 'admin',
       username: 'admin',
-      isAdmin: true 
+      isAdmin: true,
     });
   });
 
@@ -270,8 +270,9 @@ describe('API Integration Tests (e2e)', () => {
 
     it('should unpunch a number', async () => {
       // Get current player state
-      const playerResponse = await request(app.getHttpServer())
-        .get(`/player/${playerId}`);
+      const playerResponse = await request(app.getHttpServer()).get(
+        `/player/${playerId}`,
+      );
 
       const punchedNumber = playerResponse.body.punchedNumbers[0];
 
