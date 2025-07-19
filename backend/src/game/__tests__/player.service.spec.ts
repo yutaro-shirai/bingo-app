@@ -10,12 +10,14 @@ describe('PlayerService', () => {
   const mockPlayerRepository = {
     findById: jest.fn(),
     findByGameId: jest.fn(),
+    findByConnectionId: jest.fn(),
+    findBingoPlayersByGameId: jest.fn(),
     create: jest.fn(),
     update: jest.fn(),
     delete: jest.fn(),
     updateCardState: jest.fn(),
     updateConnectionState: jest.fn(),
-    findByConnectionId: jest.fn(),
+    updateBingoStatus: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -216,20 +218,14 @@ describe('PlayerService', () => {
   describe('updateCardState', () => {
     it('should update card state successfully', async () => {
       const playerId = 'player-id';
-      const cardState = [
-        [1, 16, 31, 46, 61],
-        [2, 17, 32, 47, 62],
-        [3, 18, 0, 48, 63],
-        [4, 19, 33, 49, 64],
-        [5, 20, 34, 50, 65],
-      ];
+      const punchedNumbers = [1, 16, 31, 46, 61];
 
       const mockPlayer: PlayerEntity = {
         id: playerId,
         gameId: 'game-id',
         name: 'Test Player',
         card: {
-          grid: cardState,
+          grid: [],
         },
         punchedNumbers: [],
         hasBingo: false,
@@ -237,15 +233,21 @@ describe('PlayerService', () => {
         lastSeenAt: new Date(),
       };
 
-      playerRepository.updateCardState.mockResolvedValue(mockPlayer);
+      const updatedMockPlayer = {
+        ...mockPlayer,
+        punchedNumbers,
+      };
 
-      const result = await service.updateCardState(playerId, cardState);
+      playerRepository.findById.mockResolvedValue(mockPlayer);
+      playerRepository.update.mockResolvedValue(updatedMockPlayer);
 
-      expect(playerRepository.updateCardState).toHaveBeenCalledWith(
-        playerId,
-        cardState,
-      );
-      expect(result).toEqual(mockPlayer);
+      const result = await service.updateCardState(playerId, punchedNumbers);
+
+      expect(playerRepository.findById).toHaveBeenCalledWith(playerId);
+      expect(playerRepository.update).toHaveBeenCalledWith(playerId, {
+        punchedNumbers,
+      });
+      expect(result).toEqual(updatedMockPlayer);
     });
   });
 
@@ -277,5 +279,122 @@ describe('PlayerService', () => {
       );
       expect(result).toEqual(mockPlayer);
     });
+  });
+});
+describe('updateBingoStatus', () => {
+  it('should update bingo status successfully', async () => {
+    const playerId = 'player-id';
+    const hasBingo = true;
+
+    const mockPlayer: PlayerEntity = {
+      id: playerId,
+      gameId: 'game-id',
+      name: 'Test Player',
+      card: {
+        grid: [],
+      },
+      punchedNumbers: [],
+      hasBingo: false,
+      isOnline: true,
+      lastSeenAt: new Date(),
+    };
+
+    const updatedMockPlayer = {
+      ...mockPlayer,
+      hasBingo: true,
+      bingoAchievedAt: expect.any(Date),
+    };
+
+    playerRepository.findById.mockResolvedValue(mockPlayer);
+    playerRepository.update.mockResolvedValue(updatedMockPlayer);
+
+    const result = await service.updateBingoStatus(playerId, hasBingo);
+
+    expect(playerRepository.findById).toHaveBeenCalledWith(playerId);
+    expect(playerRepository.update).toHaveBeenCalledWith(playerId, {
+      hasBingo,
+      bingoAchievedAt: expect.any(Date),
+    });
+    expect(result).toEqual(updatedMockPlayer);
+  });
+
+  it('should throw an error if player not found', async () => {
+    const playerId = 'non-existent-id';
+    playerRepository.findById.mockResolvedValue(null);
+
+    await expect(service.updateBingoStatus(playerId, true)).rejects.toThrow(
+      `Player with ID ${playerId} not found`,
+    );
+  });
+});
+
+describe('getPlayersByGameId', () => {
+  it('should return all players for a game', async () => {
+    const gameId = 'game-id';
+    const mockPlayers = [
+      {
+        id: 'player-1',
+        gameId,
+        name: 'Player 1',
+        card: { grid: [] },
+        punchedNumbers: [],
+        hasBingo: false,
+        isOnline: true,
+        lastSeenAt: new Date(),
+      },
+      {
+        id: 'player-2',
+        gameId,
+        name: 'Player 2',
+        card: { grid: [] },
+        punchedNumbers: [],
+        hasBingo: false,
+        isOnline: true,
+        lastSeenAt: new Date(),
+      },
+    ];
+
+    playerRepository.findByGameId.mockResolvedValue(mockPlayers);
+
+    const result = await service.getPlayersByGameId(gameId);
+
+    expect(playerRepository.findByGameId).toHaveBeenCalledWith(gameId);
+    expect(result.length).toBe(2);
+    expect(result[0]).toBeInstanceOf(Object);
+    expect(result[0].id).toBe('player-1');
+    expect(result[1].id).toBe('player-2');
+  });
+});
+
+describe('getPlayerById', () => {
+  it('should return a player by ID', async () => {
+    const playerId = 'player-id';
+    const mockPlayer = {
+      id: playerId,
+      gameId: 'game-id',
+      name: 'Test Player',
+      card: { grid: [] },
+      punchedNumbers: [],
+      hasBingo: false,
+      isOnline: true,
+      lastSeenAt: new Date(),
+    };
+
+    playerRepository.findById.mockResolvedValue(mockPlayer);
+
+    const result = await service.getPlayerById(playerId);
+
+    expect(playerRepository.findById).toHaveBeenCalledWith(playerId);
+    expect(result).toBeInstanceOf(Object);
+    expect(result.id).toBe(playerId);
+  });
+
+  it('should throw an error if player not found', async () => {
+    const playerId = 'non-existent-id';
+    playerRepository.findById.mockResolvedValue(null);
+
+    await expect(service.getPlayerById(playerId)).rejects.toThrow(
+      `Player with ID ${playerId} not found`,
+    );
   });
 });
