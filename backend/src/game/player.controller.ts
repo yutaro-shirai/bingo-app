@@ -13,7 +13,11 @@ import {
 } from '@nestjs/common';
 import { PlayerService } from './player.service';
 import { GameService } from './game.service';
-import { PlayerRegisterDto, PlayerUpdateDto, PlayerResponseDto } from './dto/player.dto';
+import {
+  PlayerRegisterDto,
+  PlayerUpdateDto,
+  PlayerResponseDto,
+} from './dto/player.dto';
 import { v4 as uuidv4 } from 'uuid';
 import { PlayerEntity } from './entities/player.entity';
 
@@ -36,16 +40,20 @@ export class PlayerController {
   ): Promise<PlayerResponseDto> {
     try {
       // Find the game by code
-      const game = await this.gameService.getGameByCode(playerRegisterDto.gameCode);
-      
+      const game = await this.gameService.getGameByCode(
+        playerRegisterDto.gameCode,
+      );
+
       if (!game) {
-        throw new NotFoundException(`Game with code ${playerRegisterDto.gameCode} not found`);
+        throw new NotFoundException(
+          `Game with code ${playerRegisterDto.gameCode} not found`,
+        );
       }
-      
+
       if (game.status === 'ended') {
         throw new BadRequestException('Cannot join a game that has ended');
       }
-      
+
       // Create a new player entity
       const newPlayer = new PlayerEntity();
       newPlayer.id = uuidv4();
@@ -55,19 +63,27 @@ export class PlayerController {
       newPlayer.hasBingo = false;
       newPlayer.isOnline = true;
       newPlayer.lastSeenAt = new Date();
-      
+
       // Register the player
-      const registeredPlayer = await this.playerService.registerPlayer(newPlayer);
-      
+      const registeredPlayer =
+        await this.playerService.registerPlayer(newPlayer);
+
       // Generate a bingo card for the player
-      const playerWithCard = await this.playerService.generateBingoCard(registeredPlayer.id);
-      
+      const playerWithCard = await this.playerService.generateBingoCard(
+        registeredPlayer.id,
+      );
+
       return new PlayerResponseDto(playerWithCard);
     } catch (error) {
-      if (error instanceof NotFoundException || error instanceof BadRequestException) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
         throw error;
       }
-      throw new BadRequestException('Failed to register player: ' + error.message);
+      throw new BadRequestException(
+        'Failed to register player: ' + error.message,
+      );
     }
   }
 
@@ -99,20 +115,25 @@ export class PlayerController {
   ): Promise<PlayerResponseDto> {
     try {
       const player = await this.playerService.getPlayerById(id);
-      
+
       // Toggle the punched status of the number
       let punchedNumbers = [...player.punchedNumbers];
-      
+
       if (punchedNumbers.includes(updateDto.number)) {
         // Remove the number if already punched
-        punchedNumbers = punchedNumbers.filter(num => num !== updateDto.number);
+        punchedNumbers = punchedNumbers.filter(
+          (num) => num !== updateDto.number,
+        );
       } else {
         // Add the number if not punched
         punchedNumbers.push(updateDto.number);
       }
-      
+
       // Update the player
-      const updatedPlayer = await this.playerService.updateCardState(id, punchedNumbers);
+      const updatedPlayer = await this.playerService.updateCardState(
+        id,
+        punchedNumbers,
+      );
       return new PlayerResponseDto(updatedPlayer);
     } catch (error) {
       throw new NotFoundException(`Player with ID ${id} not found`);
@@ -129,7 +150,8 @@ export class PlayerController {
   @HttpCode(HttpStatus.OK)
   async updateConnectionStatus(
     @Param('id') id: string,
-    @Body(ValidationPipe) updateDto: { isOnline: boolean, connectionId?: string },
+    @Body(ValidationPipe)
+    updateDto: { isOnline: boolean; connectionId?: string },
   ): Promise<PlayerResponseDto> {
     try {
       const updatedPlayer = await this.playerService.updateConnectionState(
@@ -154,21 +176,24 @@ export class PlayerController {
     try {
       // Get the player
       const player = await this.playerService.getPlayerById(id);
-      
+
       // Get the game
       const game = await this.gameService.getGameById(player.gameId);
-      
+
       // Validate the bingo claim
       // This would typically involve checking if the player's punched numbers
       // form a valid bingo pattern against the game's drawn numbers
-      
+
       // For now, we'll just update the player's bingo status
       const updateDto: PlayerUpdateDto = {
         hasBingo: true,
         bingoAchievedAt: new Date(),
       };
-      
-      const updatedPlayer = await this.playerService.updateBingoStatus(id, true);
+
+      const updatedPlayer = await this.playerService.updateBingoStatus(
+        id,
+        true,
+      );
       return new PlayerResponseDto(updatedPlayer);
     } catch (error) {
       throw new NotFoundException(`Player with ID ${id} not found`);

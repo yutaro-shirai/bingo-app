@@ -1,4 +1,3 @@
-
 # 📱 Bingo Web App
 
 A **mobile‑first** Web Bingo game for up to **100 concurrent players**, managed in real time by 1–2 administrators.  
@@ -10,9 +9,9 @@ Monorepo powered by **Next.js (frontend)** & **NestJS on AWS Lambda (backend)**,
 
 | Area | Highlights |
 |------|------------|
-| **Player** | QR‑code join, name‑only entry, 5×5 card with **tap‑to‑punch** holes, real‑time number highlights (<1 s), automatic reconnect |
-| **Admin** | Create / pause / end rooms (≤ 12 h), manual or timed number draw, live reach/bingo tracker, participant list & online status |
-| **Tech** | Next.js 14 App Router, TailwindCSS, PWA ready, NestJS WebSocket Gateway, Amplify Hosting + Lambda, DynamoDB TTL for game state |
+| **Player** | QR‑code join, name‑only entry, 5×5 card with **tap‑to‑punch** holes, real‑time number highlights (<1 s), automatic reconnect |
+| **Admin** | Create / pause / end rooms (≤ 12 h), manual or timed number draw, live reach/bingo tracker, participant list & online status |
+| **Tech** | Next.js 14 App Router, TailwindCSS, PWA ready, NestJS WebSocket Gateway, Amplify Hosting + Lambda, DynamoDB TTL for game state |
 
 ---
 
@@ -44,15 +43,20 @@ All three work as **npm workspaces**. Amplify builds each path in parallel.
 - **Game Service**: Fully implemented with complete game lifecycle management
 - **Game Repository**: Complete DynamoDB integration with TTL support
 - **Player Repository**: Complete CRUD operations implemented
+- **Player Service**: Fully implemented with card generation and state management
 - **Bingo Validation**: Comprehensive pattern checking (rows, columns, diagonals)
 - **Number Drawing**: Both manual and automatic drawing algorithms
-- **WebSocket Gateway**: Basic real-time communication (expanding)
+- **WebSocket Gateway**: Real-time communication implemented
+- **REST API Controllers**: Partially implemented, some endpoints still in progress
 
 ### Frontend (Next.js) - In Progress 🔄
 - **WebSocket Client**: Fully implemented with reconnection logic
-- **UI Components**: Basic components and responsive layouts
-- **Admin Authentication**: Login page and protected routes (in progress)
-- **Game Components**: Bingo card and game status components (planned)
+- **UI Components**: Basic components and responsive layouts implemented
+- **Admin Authentication**: Login page and protected routes implemented
+- **Admin Interface**: Game creation, number drawing, player monitoring, and game control fully implemented
+- **Game Components**: Bingo card component and game status components implemented
+- **Game Join**: QR code scanner and form submission implemented (needs QR library integration)
+- **Game Control Interface**: Start, pause, resume, and end game functionality fully implemented with game timer display
 
 ### Shared Types - Complete ✅
 - Game and player data models
@@ -65,7 +69,7 @@ All three work as **npm workspaces**. Amplify builds each path in parallel.
 
 ### 0. Prerequisites
 
-* Node.js 18+ / npm 9+ (or pnpm 8+)
+* Node.js 18+ / npm 9+ (or pnpm 8+)
 * Git
 * **AWS CLI** & **Amplify CLI**  
   `npm i -g @aws-amplify/cli`
@@ -170,4 +174,4 @@ MIT License – see [`LICENSE`](LICENSE).
 
 ---
 
-> *Generated 2025-07-18*
+> *Updated 2025-07-19*

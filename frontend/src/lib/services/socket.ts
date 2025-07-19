@@ -28,6 +28,7 @@ export interface WebSocketService {
   punchNumber(number: number): void;
   unpunchNumber(number: number): void;
   requestSync(): void;
+  emit(event: string, data: any): void;
   isConnected(): boolean;
   onConnect(handler: ConnectionHandler): () => void;
   onDisconnect(handler: ConnectionHandler): () => void;
@@ -233,6 +234,20 @@ export class SocketIOService implements WebSocketService {
       playerId: this.playerId,
       number,
     });
+  }
+  
+  /**
+   * Emit a custom event to the server
+   * @param event The event name
+   * @param data The event data
+   */
+  public emit(event: string, data: any): void {
+    if (!this.socket || !this.socket.connected) {
+      console.error(`Cannot emit ${event}: not connected`);
+      return;
+    }
+    
+    this.socket.emit(event, data);
   }
 
   /**

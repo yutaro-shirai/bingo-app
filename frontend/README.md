@@ -32,9 +32,11 @@ frontend/
 └── tailwind.config.js      # TailwindCSS configuration
 ```
 
-## Implemented Components
+## Components Status
 
-### WebSocket Client Service
+### Implemented Components
+
+#### WebSocket Client Service
 
 A fully implemented WebSocket client service that includes:
 - Socket.io client wrapper
@@ -42,7 +44,15 @@ A fully implemented WebSocket client service that includes:
 - Message handling and event system
 - Connection status tracking
 
-### UI Components
+#### QR Code Scanner
+
+A QR code scanner component that:
+- Requests camera access
+- Provides UI for scanning QR codes
+- Includes manual code entry fallback
+- Note: Requires integration with a QR code detection library (like jsQR or ZXing)
+
+#### UI Components
 
 - Connection status indicator
 - Protected route component for admin pages
@@ -54,11 +64,26 @@ A fully implemented WebSocket client service that includes:
 - Login page component
 - Protected route component
 - Authentication service structure
-
-**In Progress:**
 - Authentication logic integration
 - Session management
 - Admin dashboard functionality
+
+### Game Join Components
+
+**Implemented:**
+- QR code scanner component
+- Form submission functionality with Zod validation
+- WebSocket service connection
+- Game joining flow
+
+### Admin Game Management
+
+**Implemented:**
+- Game creation form with configuration options
+- Game control interface with start/pause/resume/end functionality
+- Game timer display
+- Player monitoring dashboard
+- Number drawing interface (manual and automatic)
 
 ### Responsive Layouts
 
@@ -70,14 +95,14 @@ A fully implemented WebSocket client service that includes:
 
 ### Offline Support
 
-**In Progress:**
+**Completed:**
 - Offline state indicators
 - Local state persistence
 - Automatic reconnection with WebSocket client
 
 ### State Management
 
-**Planned:**
+**Implemented:**
 - Zustand store implementation for game state
 - Player state synchronization
 - WebSocket event integration

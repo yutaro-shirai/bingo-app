@@ -83,10 +83,19 @@ export const useAuth = () => {
     return state.user?.isAdmin === true;
   }, [state.user]);
   
+  /**
+   * Get the authentication token
+   * @returns The token or null
+   */
+  const getAuthToken = useCallback(() => {
+    return auth.getToken();
+  }, [auth]);
+
   return {
     ...state,
     login,
     logout,
     isAdmin,
+    getAuthToken,
   };
 };

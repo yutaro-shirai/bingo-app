@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { GameController } from './game.controller';
+import { PlayerController } from './player.controller';
 import { GameService } from './game.service';
 import { PlayerService } from './player.service';
 import { GameRepository } from './repositories/game.repository';
@@ -11,7 +12,7 @@ import { OptimizedGameRepository } from './repositories/optimized-game.repositor
 
 @Module({
   imports: [AuthModule, DynamoDBModule],
-  controllers: [GameController],
+  controllers: [GameController, PlayerController],
   providers: [
     GameService,
     PlayerService,
