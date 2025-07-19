@@ -86,21 +86,26 @@ export class SocketIOService implements WebSocketService {
       return;
     }
 
-    this.gameId = gameId;
-    this.playerId = playerId;
+    this.gameId = gameId || this.gameId;
+    this.playerId = playerId || this.playerId;
 
     return new Promise((resolve, reject) => {
       try {
-        // Initialize socket with reconnection options
+        // Initialize socket with enhanced reconnection options
         this.socket = io(this.config.url, {
           reconnection: true,
           reconnectionAttempts: this.config.reconnectionAttempts,
           reconnectionDelay: this.config.reconnectionDelay,
           reconnectionDelayMax: this.config.reconnectionDelayMax,
           timeout: this.config.timeout,
+          // Exponential backoff for reconnection
+          randomizationFactor: 0.5,
+          // Keep alive with ping-pong
+          pingInterval: 10000,
+          pingTimeout: 5000,
           query: {
-            ...(gameId && { gameId }),
-            ...(playerId && { playerId }),
+            ...(this.gameId && { gameId: this.gameId }),
+            ...(this.playerId && { playerId: this.playerId }),
           },
         });
 
@@ -135,20 +140,44 @@ export class SocketIOService implements WebSocketService {
           }
         });
 
-        this.socket.on('reconnect_attempt', () => {
-          this.reconnectAttempts++;
+        this.socket.on('reconnect_attempt', (attemptNumber: number) => {
+          this.reconnectAttempts = attemptNumber;
           console.log(`Reconnection attempt ${this.reconnectAttempts}`);
+          
+          // Notify handlers with detailed reconnection information
+          this.notifyHandlers(MessageType.ERROR, {
+            name: 'ReconnectAttempt',
+            message: `Attempting to reconnect (${attemptNumber}/${this.config.reconnectionAttempts})`,
+            attemptNumber,
+            maxAttempts: this.config.reconnectionAttempts
+          });
         });
 
         this.socket.on('reconnect_failed', () => {
           console.error('Socket reconnection failed');
-          reject(new Error('WebSocket reconnection failed after maximum attempts'));
+          const error = new Error('Connection lost. Please check your internet connection and try again.');
+          this.notifyHandlers(MessageType.ERROR, error);
+          reject(error);
+        });
+
+        this.socket.on('reconnect_error', (error: Error) => {
+          console.error('Socket reconnection error:', error);
+          this.notifyHandlers(MessageType.ERROR, {
+            name: 'ReconnectError',
+            message: 'Failed to reconnect: ' + (error.message || 'Unknown error'),
+            originalError: error
+          });
         });
 
         this.socket.on('error', (error: Error) => {
           console.error('Socket error:', error);
-          this.notifyHandlers(MessageType.ERROR, error);
-          reject(error);
+          
+          // Create a more user-friendly error message
+          const userError = new Error(this.getUserFriendlyErrorMessage(error));
+          userError.name = 'ConnectionError';
+          
+          this.notifyHandlers(MessageType.ERROR, userError);
+          reject(userError);
         });
 
         // Set up message event handlers
@@ -472,6 +501,39 @@ export class SocketIOService implements WebSocketService {
         }
       });
     }
+  }
+  
+  /**
+   * Convert technical error messages to user-friendly messages
+   * @param error The original error
+   * @returns A user-friendly error message
+   * @private
+   */
+  private getUserFriendlyErrorMessage(error: Error): string {
+    const message = error.message.toLowerCase();
+    
+    // Network-related errors
+    if (message.includes('network') || message.includes('failed to connect')) {
+      return 'Unable to connect to the game server. Please check your internet connection.';
+    }
+    
+    // Timeout errors
+    if (message.includes('timeout') || message.includes('timed out')) {
+      return 'Connection timed out. The server might be busy or your internet connection is slow.';
+    }
+    
+    // Server errors
+    if (message.includes('500') || message.includes('server error')) {
+      return 'The game server encountered an error. Please try again later.';
+    }
+    
+    // Authentication errors
+    if (message.includes('unauthorized') || message.includes('403') || message.includes('authentication')) {
+      return 'Unable to join the game. Your session may have expired.';
+    }
+    
+    // Default message
+    return 'Connection issue. Please try reconnecting.';
   }
 }
 
