@@ -217,32 +217,32 @@
     - Create alerting for critical issues
     - _Requirements: 7.1, 7.2, 7.3, 7.4_
 
-- [ ] 8. Bug Fixes and Improvements
-  - [ ] 8.1 Fix QR code scanner implementation
+- [x] 8. Bug Fixes and Improvements
+  - [x] 8.1 Fix QR code scanner implementation
     - Integrate with a QR code detection library (jsQR or ZXing)
     - Complete the detectQRCode function in QRCodeScanner.tsx
     - Add proper error handling for camera access issues
     - _Requirements: 1.1, 6.3_
 
-  - [ ] 8.2 Fix player service implementation
+  - [x] 8.2 Fix player service implementation
     - Fix syntax errors in player.service.ts
     - Properly implement getPlayersByGameId and getPlayerById methods
     - Add proper error handling for database operations
     - _Requirements: 1.2, 1.4, 2.1, 2.2_
 
-  - [ ] 8.3 Integrate bingo card component with game page
+  - [x] 8.3 Integrate bingo card component with game page
     - Add AnimatedBingoCard component to game page
     - Connect card to player state
     - Implement bingo validation on card interaction
     - _Requirements: 2.1, 2.2, 2.3, 2.4_
 
-  - [ ] 8.4 Implement bingo celebration animation
+  - [x] 8.4 Implement bingo celebration animation
     - Create visual celebration when player achieves bingo
     - Add sound effects for bingo achievement
     - Implement server notification for bingo claims
     - _Requirements: 2.4, 4.1, 6.3, 6.4, 6.5_
 
-  - [ ] 8.5 Enhance error handling and offline experience
+  - [x] 8.5 Enhance error handling and offline experience
     - Improve error messages for connection issues
     - Enhance offline mode functionality
     - Implement better reconnection strategies
