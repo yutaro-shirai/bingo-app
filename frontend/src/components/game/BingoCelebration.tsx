@@ -1,6 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { usePlayer } from '@/lib/stores/playerStore';
 import { ANIMATION_CLASSES, playSoundEffect, triggerHapticFeedback } from '@/lib/utils/animations';
+import { getSocketService } from '@/lib/services/socket';
+import { MessageType } from 'shared/types';
 
 interface BingoCelebrationProps {
   onComplete?: () => void;
@@ -18,6 +20,20 @@ export const BingoCelebration: React.FC<BingoCelebrationProps> = ({
   const [isVisible, setIsVisible] = useState(false);
   const [confettiPieces, setConfettiPieces] = useState<Array<{ id: number; color: string; delay: number }>>([]);
 
+  // Send bingo notification to server
+  const notifyServer = useCallback(() => {
+    if (hasBingo && player) {
+      const socketService = getSocketService();
+      if (socketService.isConnected()) {
+        socketService.emit(MessageType.PLAYER_BINGO, {
+          playerId: player.id,
+          playerName: player.name,
+          bingoAchievedAt: player.bingoAchievedAt || new Date(),
+        });
+      }
+    }
+  }, [hasBingo, player]);
+
   useEffect(() => {
     if (hasBingo && player?.bingoAchievedAt) {
       setIsVisible(true);
@@ -33,6 +49,9 @@ export const BingoCelebration: React.FC<BingoCelebrationProps> = ({
       // Play celebration sound and haptic feedback
       playSoundEffect('celebration', 0.7);
       triggerHapticFeedback('heavy');
+      
+      // Notify server about bingo achievement
+      notifyServer();
 
       // Auto-hide after duration
       const timer = setTimeout(() => {
@@ -42,7 +61,7 @@ export const BingoCelebration: React.FC<BingoCelebrationProps> = ({
 
       return () => clearTimeout(timer);
     }
-  }, [hasBingo, player?.bingoAchievedAt, duration, onComplete]);
+  }, [hasBingo, player?.bingoAchievedAt, duration, onComplete, notifyServer]);
 
   if (!isVisible || !hasBingo) {
     return null;
@@ -143,13 +162,19 @@ export const MiniBingoCelebration: React.FC<{ playerName: string; onComplete?: (
   const [isVisible, setIsVisible] = useState(true);
 
   useEffect(() => {
+    // Play a softer celebration sound for other players' bingos
+    playSoundEffect('celebration', 0.3);
+    
+    // Provide subtle haptic feedback
+    triggerHapticFeedback('light');
+    
     const timer = setTimeout(() => {
       setIsVisible(false);
       onComplete?.();
     }, 3000);
 
     return () => clearTimeout(timer);
-  }, [onComplete]);
+  }, [onComplete, playerName]);
 
   if (!isVisible) {
     return null;
@@ -157,13 +182,30 @@ export const MiniBingoCelebration: React.FC<{ playerName: string; onComplete?: (
 
   return (
     <div className="fixed top-4 right-4 z-40 pointer-events-none">
-      <div className={`bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg ${ANIMATION_CLASSES.SLIDE_IN_RIGHT}`}>
+      <div className={`bg-green-500 text-white px-4 py-3 rounded-lg shadow-lg ${ANIMATION_CLASSES.SLIDE_IN_RIGHT}`}>
         <div className="flex items-center space-x-2">
-          <span className="text-lg">🎉</span>
+          <div className={`text-xl ${ANIMATION_CLASSES.BOUNCE}`}>🎉</div>
           <div>
-            <div className="font-semibold">BINGO!</div>
+            <div className="font-semibold text-base">BINGO!</div>
             <div className="text-sm">{playerName} won!</div>
           </div>
+        </div>
+        
+        {/* Mini confetti effect */}
+        <div className="absolute -z-10 inset-0 overflow-hidden">
+          {Array.from({ length: 10 }).map((_, i) => (
+            <div
+              key={i}
+              className="absolute w-1 h-1 rounded-full animate-ping"
+              style={{
+                backgroundColor: ['#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6'][i % 5],
+                top: `${Math.random() * 100}%`,
+                left: `${Math.random() * 100}%`,
+                animationDelay: `${Math.random() * 1000}ms`,
+                animationDuration: '1s',
+              }}
+            />
+          ))}
         </div>
       </div>
     </div>
