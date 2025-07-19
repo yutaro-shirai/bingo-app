@@ -103,6 +103,8 @@ class OfflineService {
 
     const socketService = getSocketService();
     if (!socketService.isConnected()) {
+      this.syncError = 'Cannot sync: not connected to server';
+      this.notifySubscribers();
       return;
     }
 
@@ -116,30 +118,31 @@ class OfflineService {
         (a, b) => a.timestamp.getTime() - b.timestamp.getTime()
       );
 
-      for (const action of actionsToProcess) {
+      // Group similar actions to optimize sync
+      const groupedActions = this.groupSimilarActions(actionsToProcess);
+      
+      // Process each group with delay between groups to avoid overwhelming the server
+      for (const group of groupedActions) {
         try {
-          if (action.type === 'punch') {
-            socketService.punchNumber(action.number);
-          } else {
-            socketService.unpunchNumber(action.number);
-          }
-
-          // Remove successful action
-          this.pendingActions = this.pendingActions.filter(a => a.id !== action.id);
-        } catch (error) {
-          // Increment retry count
-          action.retryCount++;
+          await this.processSyncGroup(group);
           
-          // Remove action if it has failed too many times
-          if (action.retryCount >= 3) {
-            this.pendingActions = this.pendingActions.filter(a => a.id !== action.id);
-            console.warn(`Dropping action ${action.id} after ${action.retryCount} retries`);
+          // Short delay between groups
+          if (groupedActions.length > 1) {
+            await new Promise(resolve => setTimeout(resolve, 300));
           }
+        } catch (error) {
+          console.error('Error processing sync group:', error);
+          // Continue with next group even if one fails
         }
       }
 
       this.lastSyncTime = new Date();
       this.savePendingActions();
+      
+      // If we still have pending actions, schedule another sync attempt
+      if (this.pendingActions.length > 0) {
+        setTimeout(() => this.syncPendingActions(), 5000);
+      }
     } catch (error) {
       this.syncError = error instanceof Error ? error.message : 'Sync failed';
       console.error('Failed to sync pending actions:', error);
@@ -147,6 +150,72 @@ class OfflineService {
 
     this.syncInProgress = false;
     this.notifySubscribers();
+  }
+  
+  /**
+   * Group similar actions to optimize sync
+   * @private
+   */
+  private groupSimilarActions(actions: PendingAction[]): PendingAction[][] {
+    const groups: PendingAction[][] = [];
+    let currentGroup: PendingAction[] = [];
+    let currentType: string | null = null;
+    
+    for (const action of actions) {
+      // Start a new group if type changes or group gets too large
+      if (currentType !== action.type || currentGroup.length >= 10) {
+        if (currentGroup.length > 0) {
+          groups.push([...currentGroup]);
+        }
+        currentGroup = [action];
+        currentType = action.type;
+      } else {
+        currentGroup.push(action);
+      }
+    }
+    
+    // Add the last group if not empty
+    if (currentGroup.length > 0) {
+      groups.push(currentGroup);
+    }
+    
+    return groups;
+  }
+  
+  /**
+   * Process a group of similar actions
+   * @private
+   */
+  private async processSyncGroup(actions: PendingAction[]): Promise<void> {
+    const socketService = getSocketService();
+    
+    for (const action of actions) {
+      try {
+        if (action.type === 'punch') {
+          socketService.punchNumber(action.number);
+        } else {
+          socketService.unpunchNumber(action.number);
+        }
+
+        // Remove successful action
+        this.pendingActions = this.pendingActions.filter(a => a.id !== action.id);
+      } catch (error) {
+        // Increment retry count
+        const actionIndex = this.pendingActions.findIndex(a => a.id === action.id);
+        if (actionIndex >= 0) {
+          this.pendingActions[actionIndex].retryCount++;
+          
+          // Remove action if it has failed too many times
+          if (this.pendingActions[actionIndex].retryCount >= 5) {
+            this.pendingActions = this.pendingActions.filter(a => a.id !== action.id);
+            console.warn(`Dropping action ${action.id} after ${this.pendingActions[actionIndex].retryCount} retries`);
+          }
+        }
+      }
+    }
+    
+    // Save after processing each group
+    this.savePendingActions();
   }
 
   /**
@@ -195,20 +264,41 @@ class OfflineService {
     console.log('Device came online');
     this.notifySubscribers();
     
-    // Try to reconnect and sync
-    setTimeout(() => {
+    // Try to reconnect and sync with progressive backoff
+    const attemptReconnection = (attempt = 1, maxAttempts = 5) => {
+      if (attempt > maxAttempts) {
+        this.syncError = `Failed to reconnect after ${maxAttempts} attempts`;
+        this.notifySubscribers();
+        return;
+      }
+      
       const socketService = getSocketService();
       if (!socketService.isConnected()) {
-        // Attempt to reconnect
-        socketService.connect().then(() => {
-          this.syncPendingActions();
-        }).catch(error => {
-          console.error('Failed to reconnect after coming online:', error);
-        });
+        // Attempt to reconnect with exponential backoff
+        const backoffTime = Math.min(1000 * Math.pow(1.5, attempt - 1), 10000);
+        
+        console.log(`Attempting reconnection ${attempt}/${maxAttempts} in ${backoffTime}ms`);
+        
+        setTimeout(() => {
+          socketService.connect()
+            .then(() => {
+              console.log('Reconnected successfully');
+              this.syncError = null;
+              this.syncPendingActions();
+            })
+            .catch(error => {
+              console.error(`Reconnection attempt ${attempt} failed:`, error);
+              // Try again with increased backoff
+              attemptReconnection(attempt + 1, maxAttempts);
+            });
+        }, backoffTime);
       } else {
         this.syncPendingActions();
       }
-    }, 1000);
+    };
+    
+    // Start reconnection attempts
+    attemptReconnection();
   }
 
   /**
