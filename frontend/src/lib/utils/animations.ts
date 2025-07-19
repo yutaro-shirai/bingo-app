@@ -105,11 +105,32 @@ export const triggerHapticFeedback = (type: 'light' | 'medium' | 'heavy' = 'ligh
  */
 export const playSoundEffect = (soundName: string, volume: number = 0.5): void => {
   try {
+    // Check if we're in a browser environment
+    if (typeof window === 'undefined') return;
+    
+    // Create audio element
     const audio = new Audio(`/sounds/${soundName}.mp3`);
     audio.volume = volume;
-    audio.play().catch(error => {
-      console.warn('Could not play sound effect:', error);
-    });
+    
+    // Play the sound with error handling
+    const playPromise = audio.play();
+    
+    // Modern browsers return a promise from audio.play()
+    if (playPromise !== undefined) {
+      playPromise.catch(error => {
+        // Auto-play was prevented or other error
+        console.warn('Could not play sound effect:', error);
+        
+        // Add a click event listener to try playing on user interaction
+        if (error.name === 'NotAllowedError') {
+          const unlockAudio = () => {
+            audio.play().catch(e => console.warn('Still could not play audio:', e));
+            document.removeEventListener('click', unlockAudio);
+          };
+          document.addEventListener('click', unlockAudio, { once: true });
+        }
+      });
+    }
   } catch (error) {
     console.warn('Sound effect not available:', error);
   }

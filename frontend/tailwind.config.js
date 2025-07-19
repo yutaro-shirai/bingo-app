@@ -42,6 +42,7 @@ module.exports = {
         'number-draw': 'number-draw 0.5s ease-out forwards',
         'card-punch': 'card-punch 0.3s ease-out forwards',
         'bingo-celebration': 'bingo-celebration 1s ease-in-out infinite',
+        'scan-line': 'scan-line 2s ease-in-out infinite',
       },
       keyframes: {
         'number-draw': {
@@ -56,6 +57,11 @@ module.exports = {
         'bingo-celebration': {
           '0%, 100%': { transform: 'scale(1)' },
           '50%': { transform: 'scale(1.05)' },
+        },
+        'scan-line': {
+          '0%': { top: '0%' },
+          '50%': { top: '100%' },
+          '100%': { top: '0%' },
         },
       },
     },

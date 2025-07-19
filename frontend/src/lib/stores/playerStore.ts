@@ -218,6 +218,16 @@ export const usePlayerStore = create<PlayerState>()(
           // Sync local punched numbers with player data
           localPunchedNumbers: player?.punchedNumbers || [],
         });
+        
+        // If player has bingo, ensure we have the bingoAchievedAt timestamp
+        if (player?.hasBingo && !player.bingoAchievedAt) {
+          set(state => ({
+            player: state.player ? {
+              ...state.player,
+              bingoAchievedAt: new Date()
+            } : null
+          }));
+        }
       },
 
       updatePlayerCard: (card: BingoCard) => {
